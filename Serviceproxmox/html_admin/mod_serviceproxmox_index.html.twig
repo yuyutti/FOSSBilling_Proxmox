@@ -1,162 +1,176 @@
-{% extends "layout_default.html.twig" %}
-{% block meta_title %}{{ 'Proxmox servers' | trans }}{% endblock %}
+{% import 'macro_functions.html.twig' as mf %}
+{% extends 'layout_default.html.twig' %}
+{% block meta_title %}{{ 'Manage Proxmox servers' | trans }}{% endblock %}
 {% set active_menu = 'system' %}
 
 {% block content %}
-<div class="widget simpleTabs">
-
-    <ul class="tabs">
-        <li><a href="#tab-index">{{ 'Servers' | trans }}</a></li>
-        <li><a href="#tab-new-server">{{ 'New server' | trans }}</a></li>
+    <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link active" href="#tab-index" data-bs-toggle="tab">{{ 'Proxmox servers' | trans }}</a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-new-server" data-bs-toggle="tab">
+                <svg class="icon me-2">
+                    <use xlink:href="#plus" />
+                </svg>
+                {{ 'New server' | trans }}
+            </a>
+        </li>
     </ul>
 
-    <div class="tabs_container">
-        <div class="fix"></div>
-        <div class="tab_content nopadding" id="tab-index">
+<div class="card">
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-index" role="tabpanel">
+            <div class="card-body">
+                <h5>{{ 'Servers' | trans }}</h5>
+            </div>
 
 		    {% set servers_grouped = admin.serviceproxmox_server_get_list() %}
             {% for group in servers_grouped %}
-            <div class="help">
-                <h5>{{ 'Servers' | trans }}: <strong>{{group.group}}</strong> group</h5>
+            <div style="padding: 0.25rem 1.5rem">
+                <strong>{{group.group}}</strong> group
             </div>
-
-            <table class="tableStatic wide">
+            <table class="table card-table table-vcenter table-striped text-nowrap">
                 <thead>
                     <tr>
                         <th>{{ 'ID' | trans }}</th>
-						<th>{{ 'Name' | trans }}</th>
-                        <th>{{ 'Hostname/IP' | trans }}</th>
-						<th>{{ 'Slots' | trans }}</th>
+                        <th>{{ 'Name' | trans }}</th>
+                        <th>{{ 'Hostname' | trans }}</th>
+                        <th>{{ 'IPv4' | trans }}</th>
+                        <th>{{ 'IPv6' | trans }}</th>
+                        <th>{{ 'Slots' | trans }}</th>
                         <th>{{ 'Active' | trans }}</th>
-                        <th style="width:22%">&nbsp;</th>
+                        <th class="w-1"></th>
                     </tr>
                 </thead>
-                <tbody>
 
-						{% for server in group.servers %}
+                <tbody>
+                {% for server in group.servers %}
                     <tr>
-                        <td>{{server.id}}</td>
-						<td>{{server.name}}</td>
-                        <td><a href="https://{{server.access}}:8006" target="_blank">{{server.hostname}} {{server.ipv4}} {{server.ipv6}}</a></td>
-						<td>{{ server.used_slots }}/{{ server.slots }}</td>
+                        <td><a href="{{ '/serviceproxmox/server'|alink }}/{{ server.id }}">{{ server.name }}</a></td>
+                        <td>{{ server.name }}</td>
+                        <td><a href="https://{{server.access}}:8006" target="_blank">{{server.hostname}}</a></td>
+                        <td>{{ server.ipv4 }}</td>
+						<td>{{ server.ipv6 }}</td>
+                        <td>{{ server.used_slots }}/{{ server.slots }}</td>
                         <td>{{ mf.q(server.active) }}</td>
-                        <td class="actions">
-                            <a class="bb-button btn14" href="https://{{server.access}}:8006" target="_blank"><img src="images/icons/dark/cog.png" alt=""></a>
-                            <a class="bb-button btn14 api-link" data-api-msg="Connected" href="{{ 'api/admin/serviceproxmox/server_test_connection'|link({'id' : server.id}) }}" title="Test connection"><img src="images/icons/dark/signal.png" alt=""></a>
-							<a class="bb-button btn14" href="{{ '/serviceproxmox/server'|alink }}/{{server.id}}"><img src="images/icons/dark/pencil.png" alt=""></a>
-                            <a class="bb-button btn14 bb-rm-tr api-link" data-api-confirm="Are you sure?" data-api-redirect="{{ 'serviceproxmox'|alink }}" href="{{ 'api/admin/serviceproxmox/server_delete'|link({'id' : server.id}) }}"><img src="images/icons/dark/trash.png" alt=""></a>
+                        <td>
+                            <a class="btn btn-icon" href="https://{{server.access}}:8006" target="_blank">
+                                <svg class="icon">
+                                    <use xlink:href="#settings" />
+                                </svg>
+                            </a>
+                            <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/server_test_connection'|link({ 'id': server.id }) }}" title="{{ 'Test connection' | trans }}" data-api-msg="{{ 'Server connected' | trans }}">
+                                <svg class="icon">
+                                    <use xlink:href="#wifi" />
+                                </svg>
+                            </a>
+                            <a class="btn btn-icon" href="{{ '/serviceproxmox/server'|alink }}/{{ server.id }}">
+                                <svg class="icon">
+                                    <use xlink:href="#edit" />
+                                </svg>
+                            </a>
+                            <a class="btn btn-icon api-link" data-api-confirm="{{ 'Are you sure?' | trans }}" data-api-redirect="{{ 'serviceproxmox'|alink }}" href="{{ 'api/admin/serviceproxmox/server_delete'|link({ 'id': server.id }) }}">
+                                <svg class="icon">
+                                    <use xlink:href="#delete" />
+                                </svg>
+                            </a>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7">{{ 'The list is empty' | trans }}</td>
+                        <td class="text-muted" colspan="7">{{ 'The list is empty' | trans }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="7"></td>
-                    </tr>
-                </tfoot>
             </table>
-
-		{% endfor %}
+            {% endfor %}
         </div>
-		
-		
-        <div class="tab_content nopadding" id="tab-new-server">
-            <form method="post" action="admin/serviceproxmox/server_create" class="mainForm api-form" data-api-redirect="{{ 'serviceproxmox'|alink }}">
-                <fieldset>
-                    <div class="rowElem noborder">
-                        <label>{{ 'Name' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="name" value="" required="required" placeholder="{{ 'Unique name to identify this server' | trans }}">
+
+        <div class="tab-pane fade" id="tab-new-server" role="tabpanel">
+            <div class="card-body">
+                <form method="post" action="admin/serviceproxmox/server_create" class="api-form" data-api-redirect="{{ 'serviceproxmox'|alink }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Name' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="name" value="" required placeholder="{{ 'Unique name to identify this server' | trans }}">
                         </div>
-                        <div class="fix"></div>
                     </div>
-					<div class="rowElem">
-                        <label>{{ 'Group' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="group" value="" placeholder="{{ 'Server group' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Group' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="group" value="" required placeholder="{{ 'Server group' | trans }}">
                         </div>
-                        <div class="fix"></div>
                     </div>
-					<div class="rowElem">
-                        <label>{{ 'IPv4' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="ipv4" value="" placeholder="{{ 'IPv4 address of the server' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Hostname' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="hostname" value="" required placeholder="{{ 'server1.yourserverdomain.com' | trans }}">
                         </div>
-                        <div class="fix"></div>
                     </div>
-					<div class="rowElem">
-                        <label>{{ 'IPv6' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="ipv6" value="" placeholder="{{ 'IPv6 address of the server' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'IPv4 address' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="ipv4" value="" required placeholder="{{ 'Primary IPv4 address of the server' | trans }}">
                         </div>
-                        <div class="fix"></div>
                     </div>
-                    <div class="rowElem">
-                        <label>{{ 'Hostname' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="hostname" value="" placeholder="{{ 'server1.yourserverdomain.com' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'IPv6 address' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="ipv6" value="" placeholder="{{ 'Primary IPv6 address of the server' | trans }}">
                         </div>
-                        <div class="fix"></div>
                     </div>
-					<div class="rowElem">
-                        <label>{{ 'Proxmox user realm' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="realm" value="" placeholder="{{ 'pam' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Proxmox user realm' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="realm" value="" required placeholder="pam">
                         </div>
-                        <div class="fix"></div>
                     </div>
-					<div class="rowElem">
-                        <label>{{ 'Slots' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="slots" value="" required="required" placeholder="{{ 'Maximum number of accounts on this server' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Slots' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="slots" value="" required placeholder="{{ 'Maximum number of accounts on this server' | trans }}">
                         </div>
-                        <div class="fix"></div>
                     </div>
-                    <div class="rowElem">
-                        <label>{{ 'Root user' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="root_user" required="required" value="root" placeholder="{{ 'Root username' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Root user' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="root_user" value="root" required placeholder="{{ 'Root username' | trans }}">
                         </div>
-                        <div class="fix"></div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Root password' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="password" name="root_password" value="" required>
+                        </div>
                     </div>
                     
-                    <div class="rowElem">
-                        <label>{{ 'Root Password' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="password" name="root_password" required="required" value="" placeholder="{{ 'Root password of the server' | trans }}">
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Extra configuration' | trans }}:</label>
+                        <div class="col">
+                            <input class="form-control" type="text" name="config" value="">
                         </div>
-                        <div class="fix"></div>
-                    </div>
-					
-					<div class="rowElem">
-                        <label>{{ 'Extra config' | trans }}:</label>
-                        <div class="formRight">
-                            <input type="text" name="config" value="" placeholder="{{ 'extra config' | trans }}">
-                        </div>
-                        <div class="fix"></div>
                     </div>
 
-                    <div class="rowElem">
-                        <label>{{ 'Enable/Disable' | trans }}:</label>
-                            <div class="formRight">
-                                <input type="radio" name="active" value="1" checked="checked"/><label>{{ 'Enable' | trans }}</label>
-                                <input type="radio" name="active" value="0"/><label>{{ 'Disable' | trans }}</label>
+                    <div class="mb-3 row">
+                        <label class="form-label col-3 col-form-label">{{ 'Enable/Disable' | trans }}:</label>
+                        <div class="col">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" id="radioActiveYes" type="radio" name="active" value="1" checked>
+                                <label class="form-check-label" for="radioActiveYes">{{ 'Yes' | trans }}</label>
                             </div>
-                        <div class="fix"></div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" id="radioActiveNo" type="radio" name="active" value="0">
+                                <label class="form-check-label" for="radioActiveNo">{{ 'No' | trans }}</label>
+                            </div>
+                        </div>
                     </div>
-					
-					<input type="submit" value="{{ 'Add server' | trans }}" class="greyishBtn submitForm" />
-                </fieldset>
-            </form>
-        </div>
 
+                    <input type="submit" value="{{ 'Add server' | trans }}" class="btn btn-primary">
+                </form>
+            </div>
+        </div>
     </div>
 </div>
-
-
-
 {% endblock %}
