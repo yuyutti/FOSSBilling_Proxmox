@@ -36,7 +36,7 @@ class Client extends \Api_Abstract
         $data = $arguments[0];
 
         if (!isset($data['order_id'])) {
-            throw new \Box_Exception('Order id is required');
+            throw new \Box_Exception('Order ID is required');
         }
         $model = $this->getService()->getServiceproxmoxByOrderId($data['order_id']);
 
@@ -54,13 +54,13 @@ class Client extends \Api_Abstract
     public function server_get($data)
     {
         $required = array(
-            'order_id'    => 'Order id is missing',
+            'order_id'    => 'Order ID is missing',
         );
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
 		// Retrieve order
 		if(!isset($data['order_id'])) {
-            throw new \Exception('Order id is required');
+            throw new \Exception('Order ID is required');
         }
 		
 		$order = $this->di['db']->findOne('client_order',
@@ -97,14 +97,14 @@ class Client extends \Api_Abstract
     public function vm_manage($data)
     {
         $required = array(
-            'order_id'    => 'Order id is missing',
+            'order_id'    => 'Order ID is missing',
 			'method'	  => 'Method is missing',
         );
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
 		// Retrieve order
 		if(!isset($data['order_id'])) {
-            throw new \Exception('Order id is required');
+            throw new \Exception('Order ID is required');
         }
 		
 		$order = $this->di['db']->findOne('client_order',

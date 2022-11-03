@@ -720,9 +720,4 @@ class Service implements \Box\InjectionAwareInterface
 			throw new \Exception("Login to Proxmox VM failed.");
 		}
 	}
-	
-/*
-TO BE DONE
-	- Reboot server?
-*/
 }
