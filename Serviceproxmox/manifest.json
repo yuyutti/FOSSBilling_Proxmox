@@ -2,11 +2,11 @@
     "id":           "serviceproxmox",
 	"type":         "mod",
     "name":         "Proxmox",
-    "description":  "Proxmox VM provisioning",
+    "description":  "Provision Proxmox VMs using the Proxmox API",
 	"icon_url":     "icon.png",
-	"homepage_url": "https://github.com/scith/BoxBilling_Proxmox",
-    "author":       "Scith",
-	"author_url":   "https://github.com/scith/",
-	"license":      "GPL",
+	"homepage_url": "https://github.com/FOSSBilling/Proxmox",
+    "author":       "Scith & the FOSSBilling Team",
+	"author_url":   "https://github.com/FOSSBilling/",
+	"license":      "GPLv3",
     "version":      "1.0.0"
 }
