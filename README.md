@@ -1,5 +1,5 @@
 # Proxmox module for FOSSBilling
-![Screenshot](https://user-images.githubusercontent.com/35808275/199803311-e8911af6-dd3b-4cd9-9985-d32d746fb410.png)
+![Screenshot](https://user-images.githubusercontent.com/35808275/199811426-9d4708d2-e83c-47b3-b586-74e797b3fbf4.png)
 Initial Proxmox support for FOSSBilling. This module is still in development and not ready for production use.
 
 ## Features
