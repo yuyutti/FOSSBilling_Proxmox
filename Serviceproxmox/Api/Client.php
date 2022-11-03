@@ -1,13 +1,15 @@
 <?php
 /**
- * BoxBilling
+ * Proxmox module for FOSSBilling
  *
- * @copyright BoxBilling, Inc (http://www.boxbilling.com)
- * @license   Apache-2.0
+ * @author   FOSSBilling (https://www.fossbilling.org) & Scitch (https://github.com/scitch)
+ * @license  GNU General Public License version 3 (GPLv3)
  *
- * Copyright BoxBilling, Inc
- * This source file is subject to the Apache-2.0 License that is bundled
- * with this source code in the file LICENSE
+ * This software may contain code previously used in the BoxBilling project.
+ * Copyright BoxBilling, Inc 2011-2021
+ *
+ * This source file is subject to the GNU General Public License version 3 (GPLv3) that is bundled
+ * with this source code in the file LICENSE.txt.
  */
 
 namespace Box\Mod\Serviceproxmox\Api;
