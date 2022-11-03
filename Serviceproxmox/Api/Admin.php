@@ -9,7 +9,7 @@
  * Copyright BoxBilling, Inc 2011-2021
  *
  * This source file is subject to the GNU General Public License version 3 (GPLv3) that is bundled
- * with this source code in the file LICENSE.txt.
+ * with this source code in the file LICENSE.
  */
 
 namespace Box\Mod\Serviceproxmox\Api;
