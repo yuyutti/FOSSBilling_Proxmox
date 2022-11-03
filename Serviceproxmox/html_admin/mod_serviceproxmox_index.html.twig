@@ -47,7 +47,7 @@
                 <tbody>
                 {% for server in group.servers %}
                     <tr>
-                        <td><a href="{{ '/serviceproxmox/server'|alink }}/{{ server.id }}">{{ server.name }}</a></td>
+                        <td><a href="{{ '/serviceproxmox/server'|alink }}/{{ server.id }}">{{ server.id }}</a></td>
                         <td>{{ server.name }}</td>
                         <td><a href="https://{{server.access}}:8006" target="_blank">{{server.hostname}}</a></td>
                         <td>{{ server.ipv4 }}</td>
