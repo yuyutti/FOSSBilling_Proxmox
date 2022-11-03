@@ -3,8 +3,8 @@
 
 {% block breadcrumbs %}
 <ul>
-    <li class="firstB"><a href="{{ '/'|alink }}">{% trans 'Home' %}</a></li>
-    <li><a href="{{ 'serviceproxmox'|alink }}">{% trans 'Proxmox servers' %}</a></li>
+    <li class="firstB"><a href="{{ '/'|alink }}">{{ 'Home' | trans }}</a></li>
+    <li><a href="{{ 'serviceproxmox'|alink }}">{{ 'Proxmox servers' | trans }}</a></li>
     <li class="lastB">{{ server.name }}</li>
 </ul>
 {% endblock %}
@@ -18,81 +18,81 @@
 	<form method="post" action="{{ 'api/admin/serviceproxmox/server_update'|link }}" id="server-update" class="mainForm save api-form" data-api-msg="Server updated">
                 <fieldset>
                     <div class="rowElem noborder">
-                        <label>{% trans 'Name' %}:</label>
+                        <label>{{ 'Name' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="name" value="{{ server.name }}" required="required" placeholder="{% trans 'Unique name to identify this server' %}">
+                            <input type="text" name="name" value="{{ server.name }}" required="required" placeholder="{{ 'Unique name to identify this server' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
 					<div class="rowElem">
-                        <label>{% trans 'Group' %}:</label>
+                        <label>{{ 'Group' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="group" value="{{ server.group }}" placeholder="{% trans 'Server group' %}">
+                            <input type="text" name="group" value="{{ server.group }}" placeholder="{{ 'Server group' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
 					<div class="rowElem">
-                        <label>{% trans 'IPv4' %}:</label>
+                        <label>{{ 'IPv4' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="ipv4" value="{{ server.ipv4 }}" placeholder="{% trans 'IPv4 address of the server' %}">
+                            <input type="text" name="ipv4" value="{{ server.ipv4 }}" placeholder="{{ 'IPv4 address of the server' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
 					<div class="rowElem">
-                        <label>{% trans 'IPv6' %}:</label>
+                        <label>{{ 'IPv6' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="ipv6" value="{{ server.ipv6 }}" placeholder="{% trans 'IPv6 address of the server' %}">
+                            <input type="text" name="ipv6" value="{{ server.ipv6 }}" placeholder="{{ 'IPv6 address of the server' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
                     <div class="rowElem">
-                        <label>{% trans 'Hostname' %}:</label>
+                        <label>{{ 'Hostname' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="hostname" value="{{ server.hostname }}" placeholder="{% trans 'server1.yourserverdomain.com' %}">
+                            <input type="text" name="hostname" value="{{ server.hostname }}" placeholder="{{ 'server1.yourserverdomain.com' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
 					<div class="rowElem">
-                        <label>{% trans 'Slots' %}:</label>
+                        <label>{{ 'Slots' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="slots" value="{{ server.slots }}" required="required" placeholder="{% trans 'Maximum number of accounts on this server' %}">
+                            <input type="text" name="slots" value="{{ server.slots }}" required="required" placeholder="{{ 'Maximum number of accounts on this server' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
                     <div class="rowElem">
-                        <label>{% trans 'Root user' %}:</label>
+                        <label>{{ 'Root user' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="root_user" required="required" value="{{ server.root_user }}" placeholder="{% trans 'Root username' %}">
+                            <input type="text" name="root_user" required="required" value="{{ server.root_user }}" placeholder="{{ 'Root username' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
                     
                     <div class="rowElem">
-                        <label>{% trans 'Root Password' %}:</label>
+                        <label>{{ 'Root Password' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="root_password" required="required" value="{{ server.root_password }}" placeholder="{% trans 'Root password of the server' %}">
+                            <input type="text" name="root_password" required="required" value="{{ server.root_password }}" placeholder="{{ 'Root password of the server' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
 					
 					<div class="rowElem">
-                        <label>{% trans 'Extra config' %}:</label>
+                        <label>{{ 'Extra config' | trans }}:</label>
                         <div class="formRight">
-                            <input type="text" name="config" value="{{ server.config }}" placeholder="{% trans 'extra config' %}">
+                            <input type="text" name="config" value="{{ server.config }}" placeholder="{{ 'extra config' | trans }}">
                         </div>
                         <div class="fix"></div>
                     </div>
 
                     <div class="rowElem">
-                        <label>{% trans 'Enable/Disable' %}:</label>
+                        <label>{{ 'Enable/Disable' | trans }}:</label>
                             <div class="formRight">
-                                <input type="radio" name="active" value="1" {% if server.active %}checked="checked"{% endif %}/><label>{% trans 'Enable' %}</label>
-								<input type="radio" name="active" value="0" {% if not server.active %}checked="checked"{% endif %}/><label>{% trans 'Disable' %}</label>
+                                <input type="radio" name="active" value="1" {% if server.active %}checked="checked"{% endif %}/><label>{{ 'Enable' | trans }}</label>
+								<input type="radio" name="active" value="0" {% if not server.active %}checked="checked"{% endif %}/><label>{{ 'Disable' | trans }}</label>
                             </div>
                         <div class="fix"></div>
                     </div>
-			<input type="submit" value="{% trans 'Update server' %}" class="greyishBtn submitForm" />
-            <input type="button" value="{% trans 'Test connection' %}" class="greyishBtn submitForm" id="test-connection"/>
+			<input type="submit" value="{{ 'Update server' | trans }}" class="greyishBtn submitForm" />
+            <input type="button" value="{{ 'Test connection' | trans }}" class="greyishBtn submitForm" id="test-connection"/>
         </fieldset>
 
         <input type="hidden" name="server_id" value="{{ server.id }}" />

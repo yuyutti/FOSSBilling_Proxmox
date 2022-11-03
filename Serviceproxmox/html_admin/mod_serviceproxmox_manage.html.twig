@@ -1,45 +1,45 @@
 {% set server = admin.serviceproxmox_server_get_from_order({"order_id":order.id}) %}
 
 <div class="help">
-    <h2>{% trans 'Details' %}</h2>
+    <h2>{{ 'Details' | trans }}</h2>
 </div>
 <table class="tableStatic wide">
     <tbody>
         <tr class="noborder">
-            <td style="width: 30%;">{% trans 'Status' %}:</td>
+            <td style="width: 30%;">{{ 'Status' | trans }}:</td>
             <td>{{mf.status_name(order.status)}}</td>
         </tr>
 
         <tr>
-            <td>{% trans 'Server Name' %}:</td>
+            <td>{{ 'Server Name' | trans }}:</td>
             <td><a href="{{ 'serviceproxmox/server'|alink }}/{{ server.id }}">{{ server.name }}</a></td>
         </tr>
 		<tr>
-            <td>{% trans 'Server Group' %}:</td>
+            <td>{{ 'Server Group' | trans }}:</td>
             <td><a href="{{ 'serviceproxmox/server'|alink }}/{{ server.id }}">{{ server.group }}</a></td>
         </tr>
         <tr>
-            <td>{% trans 'Server IPv4' %}:</td>
+            <td>{{ 'Server IPv4' | trans }}:</td>
             <td>{{ server.ipv4 }}</td>
         </tr>
 		<tr>
-            <td>{% trans 'Server IPv6' %}:</td>
+            <td>{{ 'Server IPv6' | trans }}:</td>
             <td>{{ server.ipv6 }}</td>
         </tr>
 		<tr>
-            <td>{% trans 'Server Hostname' %}:</td>
+            <td>{{ 'Server Hostname' | trans }}:</td>
             <td>{{ server.hostname }}</td>
         </tr>
 		<tr>
-            <td>{% trans 'Server Capacity' %}:</td>
+            <td>{{ 'Server Capacity' | trans }}:</td>
             <td>{{ server.used_slots }}/{{ server.slots }}</td>
         </tr>
 		<tr>
-            <td>{% trans 'Server root user' %}:</td>
+            <td>{{ 'Server root user' | trans }}:</td>
             <td>{{ server.root_user }}</td>
         </tr>
 		<tr>
-            <td>{% trans 'Server root password' %}:</td>
+            <td>{{ 'Server root password' | trans }}:</td>
             <td>{{ server.root_password }}</td>
         </tr>
     </tbody>
@@ -48,7 +48,7 @@
             <td colspan="2">
                 <div class="aligncenter">
                     {{ order_actions }}
-                    <a class="btn55 mr10" href="https://{{ server.access }}:8006" target="_blank"><img src="images/icons/middlenav/linux.png" alt=""><span>{% trans 'Jump to Proxmox admin panel' %}</span></a>
+                    <a class="btn55 mr10" href="https://{{ server.access }}:8006" target="_blank"><img src="images/icons/middlenav/linux.png" alt=""><span>{{ 'Jump to Proxmox admin panel' | trans }}</span></a>
 
                     <a href="{{ 'api/admin/serviceproxmox/sync'|link({'order_id' : order.id }) }}" data-api-confirm="Are you sure?" data-api-msg="Account was synced" class="btn55 mr10 api-link"><img src="images/icons/middlenav/transfer.png" alt=""><span>Sync with server</span></a>
                 </div>
@@ -58,20 +58,20 @@
 </table>
 
 <div class="help">
-    <h2>{% trans 'Change account password' %}</h2>
+    <h2>{{ 'Change account password' | trans }}</h2>
 </div>
 
-<form action="{{ 'api/admin/serviceproxmox/change_password'|link }}" method="post" class="mainForm api-form save" data-api-msg="{% trans 'Account password changed' %}">
+<form action="{{ 'api/admin/serviceproxmox/change_password'|link }}" method="post" class="mainForm api-form save" data-api-msg="{{ 'Account password changed' | trans }}">
 <fieldset>
     <div class="rowElem noborder">
-        <label>{% trans 'Password' %}:</label>
+        <label>{{ 'Password' | trans }}:</label>
         <div class="formRight">
             <input type="password" name="password" required="required"/>
         </div>
         <div class="fix"></div>
     </div>
     <div class="rowElem">
-        <label>{% trans 'Password Confirm' %}:</label>
+        <label>{{ 'Password Confirm' | trans }}:</label>
         <div class="formRight">
             <input type="password" name="password_confirm"  required="required"/>
         </div>
@@ -79,6 +79,6 @@
     </div>
 
     <input type="hidden" name="order_id" value="{{ order.id }}">
-    <input type="submit" value="{% trans 'Change' %}" class="greyishBtn submitForm" />
+    <input type="submit" value="{{ 'Change' | trans }}" class="greyishBtn submitForm" />
 </fieldset>
 </form>
