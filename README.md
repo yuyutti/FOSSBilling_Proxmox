@@ -1,6 +1,7 @@
 # Proxmox module for FOSSBilling
-![Screenshot](https://user-images.githubusercontent.com/35808275/199811426-9d4708d2-e83c-47b3-b586-74e797b3fbf4.png)
 Initial Proxmox support for FOSSBilling. This module is still in development and not ready for production use.
+
+![Screenshot](https://user-images.githubusercontent.com/35808275/199820039-d917c48c-b42f-42c6-8b4e-0f1e36bd7357.png)
 
 ## Features
 - Manage pools of Proxmox servers (orders can be allocated to servers automatically based on their capacity)
