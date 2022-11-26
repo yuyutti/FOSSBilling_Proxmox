@@ -1,5 +1,5 @@
 # Proxmox module for FOSSBilling
-Initial Proxmox support for FOSSBilling. This module is still in development and not ready for production use.
+Initial Proxmox support for FOSSBilling. This module is still in development and not ready for production use. Based on [previous work](https://github.com/scith/BoxBilling_Proxmox) by [Scith](https://github.com/scith).
 
 ![Screenshot](https://user-images.githubusercontent.com/35808275/199820039-d917c48c-b42f-42c6-8b4e-0f1e36bd7357.png)
 
