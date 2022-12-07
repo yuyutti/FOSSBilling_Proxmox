@@ -10,6 +10,7 @@
    </div>
    <div class="card-body">
       <form method="post" action="admin/serviceproxmox/server_update" id="server-update" class="api-form" data-api-msg="Server updated">
+         <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
          <div class="mb-3 row">
             <label class="form-label col-3 col-form-label">{{ 'Name' | trans }}:</label>
             <div class="col">
