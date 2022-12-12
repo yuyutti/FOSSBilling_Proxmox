@@ -97,7 +97,7 @@
    
        $('#test-connection').click(function(){
            $('#server-update').submit();
-           bb.post('admin/serviceproxmox/server_test_connection', {id:{{server.id}}}, function(result){
+           bb.post('admin/serviceproxmox/server_test_connection', {id: "{{server.id}}" , CSRFToken: "{{ CSRFToken }}" }, function(result){
                bb.msg('Successfully connected to server');
            });
            return false;
