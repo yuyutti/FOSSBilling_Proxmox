@@ -10,7 +10,7 @@ Initial Proxmox support for FOSSBilling. This module is still in development and
 - Clients can use an online console, start, shutdown and reboot their VMs (not working right now)
 
 ## Installation
-- Copy the "Serviceproxmox" folder in *bb-modules*
+- Copy the "Serviceproxmox" folder in *modules*
 - Add new Proxmox servers
 - Add new Proxmox products with the correct VM settings setup
 
