@@ -91,6 +91,7 @@ class Admin extends \Api_Abstract
 			'ipv4' 			=> $server->ipv4,
 			'ipv6' 			=> $server->ipv6,
 			'hostname' 		=> $server->hostname,
+            'realm'         => $server->realm,
 			//'access' 		=> $this->getService()->find_access($server),
 			//'used_slots'	=> $server->slots - $this->used_slots($server->id),
 			'slots' 		=> $server->slots,

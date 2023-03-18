@@ -11,6 +11,8 @@
    <div class="card-body">
       <form method="post" action="admin/serviceproxmox/server_update" id="server-update" class="api-form" data-api-msg="Server updated">
          <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
+         <input type="hidden" name="server_id" value="{{ server.id }}" />
+
          <div class="mb-3 row">
             <label class="form-label col-3 col-form-label">{{ 'Name' | trans }}:</label>
             <div class="col">
@@ -84,25 +86,18 @@
                </div>
             </div>
          </div>
+
          <input type="submit" value="{{ 'Update server' | trans }}" class="btn btn-primary">
-         <input type="button" value="{{ 'Test connection' | trans }}" class="btn btn-secondary" id="test-connection">
-         <input type="hidden" name="server_id" value="{{ server.id }}" />
+
+         <a class="btn btn-primary api-link" href="{{ 'api/admin/serviceproxmox/server_test_connection'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Test connection' | trans }}" data-api-msg="{{ 'Server connected' | trans }}">
+            <svg class="icon">
+               <use xlink:href="#wifi"/>
+            </svg>
+            <span>{{ 'Test connection' | trans }}</span>
+         </a>
       </form>
    </div>
 </div>
 {% endblock %}
 {% block js%}
-<script type="text/javascript">
-   $(function() {
-   
-       $('#test-connection').click(function(){
-           $('#server-update').submit();
-           bb.post('admin/serviceproxmox/server_test_connection', {id: "{{server.id}}" , CSRFToken: "{{ CSRFToken }}" }, function(result){
-               bb.msg('Successfully connected to server');
-           });
-           return false;
-       });
-   
-   });
-</script>
 {% endblock %}

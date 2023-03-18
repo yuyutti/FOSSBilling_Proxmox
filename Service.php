@@ -197,7 +197,7 @@ class Service implements \Box\InjectionAwareInterface
 		
 		// Connect to Proxmox API
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
 		
 		// Create Proxmox VM
 		if ($proxmox->login()) {
@@ -421,7 +421,7 @@ class Service implements \Box\InjectionAwareInterface
             
 			// Connect to YNH API
 			$serveraccess = $this->find_access($server);
-			$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
+			$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
 			
 			if ($proxmox->login()) {
 				$proxmox->post("/nodes/".$model->node."/".$product_config['virt']."/".$model->vmid."/status/shutdown");
@@ -500,7 +500,7 @@ class Service implements \Box\InjectionAwareInterface
 	{
         // Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
 		if ($proxmox->login()) {
 			return true;
 		} else {
@@ -572,7 +572,7 @@ class Service implements \Box\InjectionAwareInterface
 	
         // Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
 		if ($proxmox->login()) {
 			$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
 			// VM monitoring?
@@ -600,7 +600,7 @@ class Service implements \Box\InjectionAwareInterface
 	
         // Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
 		if ($proxmox->login()) {
 			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/shutdown");
 			$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
@@ -648,7 +648,7 @@ class Service implements \Box\InjectionAwareInterface
 	
         // Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
 		if ($proxmox->login()) {
 			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/start");
 			return true;
@@ -671,7 +671,7 @@ class Service implements \Box\InjectionAwareInterface
 	
         // Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
 		if ($proxmox->login()) {
 			$settings = array(
 				'forceStop' 	=> true
