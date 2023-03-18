@@ -177,7 +177,7 @@ class Service implements \Box\InjectionAwareInterface
     public function activate($order, $model)
     {
         if (!is_object($model)) {
-            throw new \Exception('Could not activate order. Service was not created');
+            throw new \Box_Exception('Could not activate order. Service was not created');
         }
 		$config = json_decode($order->config, 1);
         //$this->validateOrderData($c);//
@@ -185,7 +185,7 @@ class Service implements \Box\InjectionAwareInterface
         $product = $this->di['db']->load('product', $order->product_id);
 		$service = $this->di['db']->dispense('service_proxmox');
         if (!$product) {
-            throw new \Exception('Could not activate order because ordered product does not exists');
+            throw new \Box_Exception('Could not activate order because ordered product does not exists');
         }
 		$product_config = json_decode($product->config, 1);
 		
@@ -290,14 +290,14 @@ class Service implements \Box\InjectionAwareInterface
 					if($proxmox->get("/access/users/".$client->id.'@'.$server->realm)) {
 						//Update user information
 						if(!$proxmox->delete("/access/users/".$client->id.'@'.$server->realm)) {
-							throw new \Exception("Proxmox user exists but could not be deleted");
+							throw new \Box_Exception("Proxmox user exists but could not be deleted");
 						}
 					}
 					
 					// Create a Proxmox user for SSH access and server commands
 					$user_settings['userid'] = $client->id.'@'.$server->realm;
 					if(!$proxmox->post("/access/users", $user_settings)) {
-						throw new \Exception("Proxmox user not created");
+						throw new \Box_Exception("Proxmox user not created");
 					}
 
 					// Give correct permissions
@@ -316,21 +316,21 @@ class Service implements \Box\InjectionAwareInterface
 						'userid' => $client->id.'@'.$server->realm
 					);
 					if(!$proxmox->put("/access/password", $user_settings)) {
-						throw new \Exception("Proxmox user password not updated");
+						throw new \Box_Exception("Proxmox user password not updated");
 					}*/
 					
 				
 				}
 				else {
-					throw new \Exception("VMID cannot be found");
+					throw new \Box_Exception("VMID cannot be found");
 				}
 			}
 			else {
-				throw new \Exception("VPS has not been created");
+				throw new \Box_Exception("VPS has not been created");
 			}
 		}
 		else {
-			throw new \Exception('Login to Proxmox Host failed', null, 7457);
+			throw new \Box_Exception('Login to Proxmox Host failed', null, 7457);
 		}
 
 		// Retrieve VM IP
@@ -436,7 +436,7 @@ class Service implements \Box\InjectionAwareInterface
 					}
 				}
 				else {
-					throw new \Exception("VMID cannot be found");
+					throw new \Box_Exception("VMID cannot be found");
 				}
 				if($proxmox->delete("/nodes/".$model->node."/".$product_config['virt']."/".$model->vmid))
 				{
@@ -444,16 +444,16 @@ class Service implements \Box\InjectionAwareInterface
 					/*if($proxmox->get("/access/users/".$client->id.'@'.$server->realm)) {
 						//Update user information
 						if(!$proxmox->delete("/access/users/".$client->id.'@'.$server->realm)) {
-							throw new \Exception("Proxmox user exists but could not be deleted");
+							throw new \Box_Exception("Proxmox user exists but could not be deleted");
 						}
 					}*/
 					return true;
 				}
 				else {
-					throw new \Exception("VM not deleted");
+					throw new \Box_Exception("VM not deleted");
 				}
 			} else {
-				throw new \Exception("Login to Proxmox Host failed");
+				throw new \Box_Exception("Login to Proxmox Host failed");
 			}
 		}
     }
@@ -503,9 +503,8 @@ class Service implements \Box\InjectionAwareInterface
 		$proxmox = new PVE2_API($serveraccess, $server->root_user, "pam", $server->root_password);
 		if ($proxmox->login()) {
 			return true;
-		}
-		else {
-			return false;
+		} else {
+			throw new \Box_Exception("Failed to connect to the server.");
 		}
 	}
 	
@@ -541,7 +540,7 @@ class Service implements \Box\InjectionAwareInterface
 			return $appropriate_server[0]['id'];
 		}
 		else {
-			throw new \Exception('No server found');
+			throw new \Box_Exception('No server found');
 			return false;
 		}
 	}
@@ -555,7 +554,7 @@ class Service implements \Box\InjectionAwareInterface
 		else if (!empty($server->ipv4)) {return $server->ipv4;}
 		else if (!empty($server->hostname)) {return $server->hostname;}
 		else {
-			throw new \Exception('No IPv6, IPv4 or Hostname found for server '.$server->id);
+			throw new \Box_Exception('No IPv6, IPv4 or Hostname found for server '.$server->id);
 		}
 	}
 	
@@ -584,7 +583,7 @@ class Service implements \Box\InjectionAwareInterface
 			return $output;
 		}
 		else {
-			throw new \Exception("Login to Proxmox Host failed.");
+			throw new \Box_Exception("Login to Proxmox Host failed.");
 		}
 	}
 	
@@ -628,11 +627,11 @@ class Service implements \Box\InjectionAwareInterface
 				return true;
 			}
 			else {
-				throw new \Exception("Reboot failed");
+				throw new \Box_Exception("Reboot failed");
 			}
 		}
 		else {
-			throw new \Exception("Login to Proxmox Host failed.");
+			throw new \Box_Exception("Login to Proxmox Host failed.");
 		}
 	}
 	
@@ -655,7 +654,7 @@ class Service implements \Box\InjectionAwareInterface
 			return true;
 		}
 		else {
-			throw new \Exception("Login to Proxmox Host failed.");
+			throw new \Box_Exception("Login to Proxmox Host failed.");
 		}
 	}
 	
@@ -682,7 +681,7 @@ class Service implements \Box\InjectionAwareInterface
 			return true;
 		}
 		else {
-			throw new \Exception("Login to Proxmox Host failed.");
+			throw new \Box_Exception("Login to Proxmox Host failed.");
 		}
 	}
 	
@@ -717,7 +716,7 @@ class Service implements \Box\InjectionAwareInterface
 			return $cli;
 		}
 		else {
-			throw new \Exception("Login to Proxmox VM failed.");
+			throw new \Box_Exception("Login to Proxmox VM failed.");
 		}
 	}
 }
