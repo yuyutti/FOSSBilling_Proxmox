@@ -1,12 +1,12 @@
 {% set server = admin.serviceproxmox_server_get_from_order({"order_id":order.id}) %}
 
-<div class="help">
+<div class="card-body">
     <h2>{{ 'Details' | trans }}</h2>
 </div>
-<table class="tableStatic wide">
+<table class="table card-table table-striped">
     <tbody>
-        <tr class="noborder">
-            <td style="width: 30%;">{{ 'Status' | trans }}:</td>
+        <tr>
+            <td>{{ 'Status' | trans }}:</td>
             <td>{{mf.status_name(order.status)}}</td>
         </tr>
 
@@ -48,38 +48,43 @@
             <td colspan="2">
                 <div class="aligncenter">
                     {{ order_actions }}
-                    <a class="btn55 mr10" href="https://{{ server.access }}:8006" target="_blank"><img src="images/icons/middlenav/linux.png" alt=""><span>{{ 'Jump to Proxmox admin panel' | trans }}</span></a>
+                    <a class="btn btn-primary" href="https://{{ server.access }}:8006" target="_blank">
+                        <svg class="icon" width="24" height="24">
+                            <use xlink:href="#server" />
+                        </svg>
+                        <span>{{ 'Jump to control panel'|trans }}</span>
+                    </a>
 
-                    <a href="{{ 'api/admin/serviceproxmox/sync'|link({'order_id' : order.id, 'CSRFToken': CSRFToken }) }}" data-api-confirm="Are you sure?" data-api-msg="Account was synced" class="btn55 mr10 api-link"><img src="images/icons/middlenav/transfer.png" alt=""><span>Sync with server</span></a>
+                    <a class="btn btn-primary api-link" href="{{ 'api/admin/serviceproxmox/sync'|link({'order_id' : order.id, 'CSRFToken': CSRFToken }) }}" data-api-confirm="{{ 'Are you sure?'|trans }}" data-api-msg="{{ 'Account was synced'|trans }}">
+                    <svg class="icon" width="24" height="24">
+                        <use xlink:href="#refresh" />
+                    </svg>
+                    <span>{{ 'Sync with server'|trans }}</span>
+                </a>
                 </div>
             </td>
         </tr>
     </tfoot>
 </table>
 
-<div class="help">
-    <h2>{{ 'Change account password' | trans }}</h2>
+<div class="card-body">
+    <h3>{{ 'Change account password'|trans }}</h3>
+    <form action="{{ 'api/admin/serviceproxmox/change_password'|link }}" method="post" class="api-form" data-api-msg="{{ 'Account password changed'|trans }}">
+        <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
+        <div class="mb-3 row">
+            <label class="form-label col-3 col-form-label">{{ 'Password'|trans }}:</label>
+            <div class="col">
+                <input class="form-control" type="password" name="password" required>
+            </div>
+        </div>
+        <div class="mb-3 row">
+            <label class="form-label col-3 col-form-label">{{ 'Password Confirm'|trans }}:</label>
+            <div class="col">
+                <input class="form-control" type="password" name="password_confirm" required>
+            </div>
+        </div>
+    
+        <input type="hidden" name="order_id" value="{{ order.id }}">
+        <input type="submit" value="{{ 'Change'|trans }}" class="btn btn-primary w-100">
+    </form>
 </div>
-
-<form action="{{ 'api/admin/serviceproxmox/change_password'|link({ 'CSRFToken': CSRFToken }) }}" method="post" class="mainForm api-form save" data-api-msg="{{ 'Account password changed' | trans }}">
-<input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
-<fieldset>
-    <div class="rowElem noborder">
-        <label>{{ 'Password' | trans }}:</label>
-        <div class="formRight">
-            <input type="password" name="password" required="required"/>
-        </div>
-        <div class="fix"></div>
-    </div>
-    <div class="rowElem">
-        <label>{{ 'Password Confirm' | trans }}:</label>
-        <div class="formRight">
-            <input type="password" name="password_confirm"  required="required"/>
-        </div>
-        <div class="fix"></div>
-    </div>
-
-    <input type="hidden" name="order_id" value="{{ order.id }}">
-    <input type="submit" value="{{ 'Change' | trans }}" class="greyishBtn submitForm" />
-</fieldset>
-</form>
