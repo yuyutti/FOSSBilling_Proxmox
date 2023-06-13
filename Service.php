@@ -15,22 +15,16 @@
 namespace Box\Mod\Serviceproxmox;
 require_once 'pve2_api.class.php';
 
-class Service implements \Box\InjectionAwareInterface
+class Service implements \FOSSBilling\InjectionAwareInterface
 {
     protected $di;
 
-    /**
-     * @param mixed $di
-     */
-    public function setDi($di)
+    public function setDi(\Pimple\Container|null $di): void
     {
         $this->di = $di;
     }
 
-    /**
-     * @return mixed
-     */
-    public function getDi()
+    public function getDi(): ?\Pimple\Container
     {
         return $this->di;
     }
