@@ -9,6 +9,9 @@
             <a class="nav-link active" href="#tab-index" data-bs-toggle="tab">{{ 'Proxmox servers' | trans }}</a>
         </li>
         <li class="nav-item" role="presentation">
+        <a class="nav-link" href="#tab-storage" data-bs-toggle="tab">{{ 'Proxmox Storage' | trans }}</a>
+        </li>
+        <li class="nav-item" role="presentation">
             <a class="nav-link" href="#tab-new-server" data-bs-toggle="tab">
                 <svg class="icon me-2">
                     <use xlink:href="#plus" />
@@ -38,7 +41,8 @@
                         <th>{{ 'Hostname' | trans }}</th>
                         <th>{{ 'IPv4' | trans }}</th>
                         <th>{{ 'IPv6' | trans }}</th>
-                        <th>{{ 'Slots' | trans }}</th>
+                        <th>{{ 'CPU' | trans }}</th>
+                        <th>{{ 'RAM' | trans }}</th>
                         <th>{{ 'Active' | trans }}</th>
                         <th class="w-1"></th>
                     </tr>
@@ -52,7 +56,8 @@
                         <td><a href="https://{{server.access}}:8006" target="_blank">{{server.hostname}}</a></td>
                         <td>{{ server.ipv4 }}</td>
 						<td>{{ server.ipv6 }}</td>
-                        <td>{{ server.used_slots }}/{{ server.slots }}</td>
+                        <td>{{ server.cpu_cores_allocated }}/{{ server.cpu_cores }}</td>
+                        <td>{{ server.ram }} MB</td>
                         <td>{{ mf.q(server.active) }}</td>
                         <td>
                             <a class="btn btn-icon" href="https://{{server.access}}:8006" target="_blank">
@@ -63,6 +68,16 @@
                             <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/server_test_connection'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Test connection' | trans }}" data-api-msg="{{ 'Server connected' | trans }}">
                                 <svg class="icon">
                                     <use xlink:href="#wifi" />
+                                </svg>
+                            </a>
+                            <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/server_prepare_pve_setup'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Prepare Server' | trans }}" data-api-msg="{{ 'Server prepared' | trans }}">
+                                <svg class="icon">
+                                    <use xlink:href="#wifi" />
+                                </svg>
+                            </a>
+                            <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/test_access'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Create User' | trans }}" data-api-msg="{{ 'User created' | trans }}">
+                                <svg class="icon">
+                                    <use xlink:href="#plus" />
                                 </svg>
                             </a>
                             <a class="btn btn-icon" href="{{ '/serviceproxmox/server'|alink }}/{{ server.id }}">
@@ -173,5 +188,123 @@
             </div>
         </div>
     </div>
+    <div class="tab-content">
+        <div class="tab-pane fade show" id="tab-storage" role="tabpanel">
+            <div class="card-body">
+                <h5>{{ 'Storage list' | trans }}</h5>
+            </div>
+
+		    {% set storages_grouped = admin.serviceproxmox_storage_get_list() %}
+            {% for type in storages_grouped %}
+            <div style="padding: 0.25rem 1.5rem">
+                <strong>{{type.group}}-Storages </strong>
+            </div>
+            <table class="table card-table table-vcenter table-striped text-nowrap">
+                <thead>
+                    <tr>
+                        <th>{{ 'Storage' | trans }}</th>                        
+                        <th>{{ 'Servername' | trans }}</th>
+                        <th>{{ 'Content' | trans }}</th>
+                        <th style="text-align: right;">{{ 'Storage Space' | trans }}</th>
+                        <th>{{ 'Active' | trans }}</th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for storage in type.storages %}
+                    <tr>
+                        <td>{{ storage.name }}</td>
+                        <td>{{ storage.servername }}</td>                        
+                        <!-- split the content of storage.content by colon and put each value on a line -->
+                        <td>
+                        {% set content = storage.content|split(',') %}
+                        {% for line in content %}
+                        {{ line }}<br>
+                        {% endfor %}</td>
+                        <td style="text-align: center; width: 3em;">{{storage.used}} / {{ storage.size }} GB
+                            <div class="progress progress-sm">
+                                <div class="progress-bar" style="width: {{ storage.percent_used }}%"></div>
+                            </div>
+                        </td>
+                        {% if storage.active == 1 %}
+                        <td><span class="badge bg-success me-1"></span></td>
+                        {% else %}
+                        <td><span class="badge bg-fail me-1"></span></td>
+                        {% endif %}
+
+                         <td>
+                            <a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
+                                <svg class="icon">
+                                    <use xlink:href="#edit" />
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="tab-content">
+        <div class="tab-pane fade show" id="tab-services" role="tabpanel">
+            <div class="card-body">
+                <h5>{{ 'Servicelist' | trans }}</h5>
+            </div>
+
+		    {% set services = admin.serviceproxmox_service_proxmox_get_list() %}
+            {% for service in services %}
+            <div style="padding: 0.25rem 1.5rem">
+                <strong>All Services </strong>
+            </div>
+            <table class="table card-table table-vcenter table-striped text-nowrap">
+                <thead>
+                    <tr>
+                        <th>{{ 'Server' | trans }}</th>                        
+                        <th>{{ 'VM ID' | trans }}</th>
+                        <th>{{ 'Host Name' | trans }}</th>
+                        <th>{{ 'Status' | trans }}</th>
+                        <th class="w-1"></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for storage in type.storages %}
+                    <tr>
+                        <td>{{ storage.name }}</td>
+                        <td>{{ storage.servername }}</td>                        
+                        <!-- split the content of storage.content by colon and put each value on a line -->
+                        <td>
+                        {% set content = storage.content|split(',') %}
+                        {% for line in content %}
+                        {{ line }}<br>
+                        {% endfor %}</td>
+                        <td style="text-align: center; width: 3em;">{{storage.used}} / {{ storage.size }} GB
+                            <div class="progress progress-sm">
+                                <div class="progress-bar" style="width: {{ storage.percent_used }}%"></div>
+                            </div>
+                        </td>
+                        {% if storage.active == 1 %}
+                        <td><span class="badge bg-success me-1"></span></td>
+                        {% else %}
+                        <td><span class="badge bg-fail me-1"></span></td>
+                        {% endif %}
+
+                         <td>
+                            <a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
+                                <svg class="icon">
+                                    <use xlink:href="#edit" />
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+        </div>
+    </div>
+
 </div>
 {% endblock %}

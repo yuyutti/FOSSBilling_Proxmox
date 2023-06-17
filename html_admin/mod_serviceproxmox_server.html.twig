@@ -50,12 +50,6 @@
             </div>
          </div>
          <div class="mb-3 row">
-            <label class="form-label col-3 col-form-label">{{ 'Slots' | trans }}:</label>
-            <div class="col">
-               <input class="form-control" type="text" name="slots" value="{{ server.slots }}" required placeholder="{{ 'Maximum number of accounts on this server' | trans }}">
-            </div>
-         </div>
-         <div class="mb-3 row">
             <label class="form-label col-3 col-form-label">{{ 'Root user' | trans }}:</label>
             <div class="col">
                <input class="form-control" type="text" name="root_user" value="{{ server.root_user }}" required placeholder="{{ 'Root username' | trans }}">
@@ -64,7 +58,19 @@
          <div class="mb-3 row">
             <label class="form-label col-3 col-form-label">{{ 'Root password' | trans }}:</label>
             <div class="col">
-               <input class="form-control" type="password" name="root_password" value="{{ server.root_password }}" required>
+               <input class="form-control" type="password" name="root_password" value="{{ server.root_password }}" >
+            </div>
+         </div>
+         <div class="mb-3 row">
+            <label class="form-label col-3 col-form-label">{{ 'API Token name' | trans }}:</label>
+            <div class="col">
+               <input class="form-control" type="text" name="tokenname" value="{{ server.tokenname }}" >
+            </div>
+         </div>
+         <div class="mb-3 row">
+            <label class="form-label col-3 col-form-label">{{ 'API Token Secret' | trans }}:</label>
+            <div class="col">
+               <input class="form-control" type="text" name="tokenvalue" placeholder="{{ server.tokenvalue }}" enabled="false">
             </div>
          </div>
          <div class="mb-3 row">

@@ -1,0 +1,129 @@
+{% extends request.ajax ? "layout_blank.html.twig" : "layout_default.html.twig" %}
+
+{% import "macro_functions.html.twig" as mf %}
+
+{% block meta_title %}{{ 'Proxmox settings'|trans }}{% endblock %}
+
+{% set active_menu = 'system' %}
+
+{% block breadcrumbs %}
+    <ul class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{{ '/'|alink }}">
+                <svg class="icon">
+                    <use xlink:href="#home" />
+                </svg>
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="{{ 'system'|alink }}">{{ 'Settings'|trans }}</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">{{ 'Proxmox settings'|trans }}</li>
+    </ul>
+{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">{{ 'Proxmox settings'|trans }}</h3>
+            <div class="card-actions">
+                <a href="{{ 'extension/settings/proxmox'|alink }}#tab-manage-proxmox" class="btn btn-primary">
+                    <svg class="icon">
+                        <use xlink:href="#edit"/>
+                    </svg>
+                    <span>{{ 'New helpdesk'|trans }}</span>
+                </a>
+            </div>
+        </div>
+
+        {% set params = admin.extension_config_get({ "ext": "mod_serviceproxmox" }) %}
+        <form method="post" action="{{ 'api/admin/extension/config_save'|link }}" class="api-form" data-api-msg="Settings updated">
+            <div class="card-body">
+                <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
+                <input type="hidden" name="ext" value="mod_serviceproxmox" />
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label">{{ 'Authentication Realm'|trans }}</label>
+                    <div class="col-md-6">
+                        <input class="form-control" type="text" name="use_auth_tokens" value="{{ params.use_auth_tokens }}" required="required"/>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label">{{ 'Error message'|trans }}</label>
+                    <div class="col-md-6">
+                        <input class="form-control" type="text" name="error_msg" value="{{ params.error_msg }}" required="required" />
+                    </div>
+                </div>
+            </div>
+            <div class="card-body border-bottom">
+                <h3 class="card-title">{{ 'Set Settings for Storageclasses'|trans }}</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table card-table table-vcenter table-striped text-nowrap">
+                    <thead>
+                    <tr>
+                        <th class="w-1"></th>
+                        <th>{{ 'Storages'|trans }}</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for storages_grouped in admin.serviceproxmox_storage_get_list %}
+                        {% for type in storages_grouped %}
+                            <div style="padding: 0.25rem 1.5rem">
+                            <strong>{{type.group}}-Storages </strong>
+                            </div>
+                            <table class="table card-table table-vcenter table-striped text-nowrap">
+                            <thead>
+                            <tr>
+                            <th>{{ 'Storage' | trans }}</th>                        
+                            <th>{{ 'Servername' | trans }}</th>
+                            <th>{{ 'Content' | trans }}</th>
+                            <th style="text-align: right;">{{ 'Storage Space' | trans }}</th>
+                            <th>{{ 'Active' | trans }}</th>
+                            <th class="w-1"></th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            {% for storage in type.storages %}
+                                <tr>
+                                <td>{{ storage.name }}</td>
+                                <td>{{ storage.servername }}</td>                        
+                                <!-- split the content of storage.content by colon and put each value on a line -->
+                                <td>
+                                {% set content = storage.content|split(',') %}
+                                {% for line in content %}
+                                    {{ line }}<br>
+                                {% endfor %}</td>
+                                <td style="text-align: center; width: 3em;">{{storage.used}} / {{ storage.size }} GB
+                                <div class="progress progress-sm">
+                                <div class="progress-bar" style="width: {{ storage.percent_used }}%"></div>
+                                </div>
+                                </td>
+                                {% if storage.active == 1 %}
+                                    <td><span class="badge bg-success me-1"></span></td>
+                                {% else %}
+                                    <td><span class="badge bg-fail me-1"></span></td>
+                                {% endif %}
+
+                                <td>
+                                <a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
+                                <svg class="icon">
+                                <use xlink:href="#edit" />
+                                </svg>
+                                </a>
+                                </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                            </table>
+                        {% endfor %}
+                        </div>
+                    {% endfor %}
+            <div class="card-footer text-end">
+                    <input type="submit" value="{{ 'Update'|trans }}" class="btn btn-primary"/>
+                </div>
+            </div>
+        </form>
+    </div>
+{% endblock %}

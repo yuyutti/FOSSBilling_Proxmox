@@ -15,6 +15,9 @@
 namespace Box\Mod\Serviceproxmox;
 require_once 'pve2_api.class.php';
 
+/**
+ * Proxmox module for FOSSBilling
+ */
 class Service implements \FOSSBilling\InjectionAwareInterface
 {
     protected $di;
@@ -28,6 +31,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
     {
         return $this->di;
     }
+
 
     public function validateCustomForm(array &$data, array $product)
     {
@@ -67,6 +71,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
     public function install()
     {
         // execute sql script if needed
+		// TODO: Eventually remove root_password
         $sql = "
         CREATE TABLE IF NOT EXISTS `service_proxmox_server` (
             `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -77,9 +82,15 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             `hostname` varchar(255) DEFAULT NULL,
 			`mac` varchar(255) DEFAULT NULL,
 			`realm` varchar(255) DEFAULT NULL,
+			`cpu_cores` bigint(20) DEFAULT NULL,
+			`ram` bigint(20) DEFAULT NULL,
+			`ram_used` bigint(20) DEFAULT NULL,
+			`cpu_cores_allocated` bigint(20) DEFAULT NULL,
 			`slots` bigint(20) DEFAULT NULL,
 			`root_user` varchar(255) DEFAULT NULL,
             `root_password` varchar(255) DEFAULT NULL,
+			`tokenname` varchar(255) DEFAULT NULL,
+			`tokenvalue` varchar(255) DEFAULT NULL,			
             `config` text,
 			`active` bigint(20) DEFAULT NULL,
             `created_at` varchar(35) DEFAULT NULL,
@@ -94,19 +105,64 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			`client_id` bigint(20) DEFAULT NULL,
 			`order_id` bigint(20) DEFAULT NULL,
 			`server_id` bigint(20) DEFAULT NULL,
-			`node` varchar(255) DEFAULT NULL,
 			`vmid` bigint(20) DEFAULT NULL,
 			`ipv4` varchar(255) DEFAULT NULL,
             `ipv6` varchar(255) DEFAULT NULL,
 			`hostname` varchar(255) DEFAULT NULL,
 			`password` varchar(255) DEFAULT NULL,
             `config` text,
+			`status` varchar(255) DEFAULT NULL,	
+			`storage` varchar(255) DEFAULT NULL,
+			`cpu_cores` varchar(255) DEFAULT NULL,
             `created_at` varchar(35) DEFAULT NULL,
             `updated_at` varchar(35) DEFAULT NULL,
             PRIMARY KEY (`id`),
 			KEY `client_id_idx` (`client_id`)
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;";
         $this->di['db']->exec($sql);
+
+		$sql = "
+        CREATE TABLE IF NOT EXISTS `service_proxmox_users` (
+            `id` bigint(20) NOT NULL AUTO_INCREMENT,
+			`client_id` bigint(20) DEFAULT NULL,
+			`admin_tokenname` varchar(255) DEFAULT NULL,
+			`admin_tokenvalue` varchar(255) DEFAULT NULL,
+			`view_tokenname` varchar(255) DEFAULT NULL,
+			`view_tokenvalue` varchar(255) DEFAULT NULL,
+            `created_at` varchar(35) DEFAULT NULL,
+            `updated_at` varchar(35) DEFAULT NULL,
+            PRIMARY KEY (`id`),
+			KEY `client_id_idx` (`client_id`)
+            ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;";
+        $this->di['db']->exec($sql);
+
+		// create table for storage class information
+		$sql = "
+			`id` bigint(20) NOT NULL AUTO_INCREMENT,
+			`storageclass` varchar(35) DEFAULT NULL,
+			PRIMARY KEY (`id`)
+			) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+		$this->di['db']->exec($sql);
+
+
+		// create table for server storage
+		// server_id and storage form a unique key
+		$sql = "
+		CREATE TABLE IF NOT EXISTS `service_proxmox_storage` (
+			`id` bigint(20) NOT NULL AUTO_INCREMENT,
+			`server_id` bigint(20) DEFAULT NULL,
+			`storage` varchar(255) DEFAULT NULL,
+			`type` varchar(255) DEFAULT NULL,
+			`content` varchar(255) DEFAULT NULL,
+			`active` bigint(20) DEFAULT NULL,
+			`storageclass` varchar(35) DEFAULT NULL,
+			`size` bigint(20) DEFAULT NULL,
+			`used` bigint(20) DEFAULT NULL,
+			`free` bigint(20) DEFAULT NULL,
+			PRIMARY KEY (`id`),
+			UNIQUE KEY `server_storage_unique` (`server_id`, `storage`)
+		) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+		$this->di['db']->exec($sql);
 
         //throw new \Box_Exception("Throw exception to terminate module installation process with a message", array(), 123);
         return true;
@@ -122,10 +178,16 @@ class Service implements \FOSSBilling\InjectionAwareInterface
     {
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_server`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_users`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_storage`");
         //throw new \Box_Exception("Throw exception to terminate module uninstallation process with a message", array(), 124);
         return true;
     }
 	
+	/* ################################################################################################### */
+    /* ###########################################  Orders  ############################################## */
+    /* ################################################################################################### */
+    
     /**
      * @param \Model_ClientOrder $order
      * @return void
@@ -188,11 +250,17 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		
 		// Retrieve server info
 		$server = $this->di['db']->load('service_proxmox_server', $serverid);
+	
+		// Retrieve or create client unser account in service_proxmox_users
+		$clientuser = $this->di['db']->findOne('service_proxmox_users', 'server_id = ? and client_id = ?', array($server->id, $client->id));
+		if (!$clientuser) {
+			$this->create_clientuser($server, $client);
+		}
 		
 		// Connect to Proxmox API
 		$serveraccess = $this->find_access($server);
 		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
-		
+	
 		// Create Proxmox VM
 		if ($proxmox->login()) {
 	
@@ -205,10 +273,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			$first_node = $nodes[0];
 			$proxmoxuser_password = $this->di['tools']->generatePassword(10, 4); // Generate password
 
-			// Create Server
+			// Create VM
 			$clone = '';
 			$container_settings = array();
-			$description = 'Server package '.$service->id.' belonging to '.$client->first_name.' '.$client->last_name.' id: '.$client->id;
+			$description = 'Service package '.$service->id.' belonging to '.$client->first_name.' '.$client->last_name.' id: '.$client->id;
 			
 			if ($product_config['clone'] == true) {
 				$clone = '/'.$product_config['cloneid'].'/clone'; // Define the route for cloning
@@ -219,7 +287,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 					'full' => true
 				);		
 			}
-			else {
+			else { // TODO: Fix Container templates 
 				if ($product_config['virt'] == 'qemu') {
 					$container_settings = array(
 						'vmid' => $vmid,
@@ -280,7 +348,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 						//'password' => $proxmoxuser_password		// Not working
 					);
 					
-					// If proxmox user exists, delete it first
+					// If proxmox user exists, delete it first TODO: NEVER DO THAT.
 					if($proxmox->get("/access/users/".$client->id.'@'.$server->realm)) {
 						//Update user information
 						if(!$proxmox->delete("/access/users/".$client->id.'@'.$server->realm)) {
@@ -345,6 +413,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             'password'  =>  $proxmoxuser_password,
         );
     }
+
+	/* ################################################################################################### */
+    /* #######################################  VM Management  ########################################### */
+    /* ################################################################################################### */
 
     /**
      * Suspend Proxmox VM
@@ -415,7 +487,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             
 			// Connect to YNH API
 			$serveraccess = $this->find_access($server);
-			$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
+			$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
 			
 			if ($proxmox->login()) {
 				$proxmox->post("/nodes/".$model->node."/".$product_config['virt']."/".$model->vmid."/status/shutdown");
@@ -452,50 +524,195 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		}
     }
 	
-
-    public function getConfig($model)
-    {
-        return $this->di['tools']->decodeJ($model->config);
-    }
-
-    public function toApiArray($model)
-    {
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$model->server_id));
-			
-        return array(
-            'id'              => $model->id,
-            'client_id'       => $model->client_id,
-            'server_id'       => $model->server_id,
-            'username'        => $model->username,
-            'mailbox_quota'   => $model->mailbox_quota,
-			'server' 		  => $server,
-        );
-    }
-	
 	/*
-		Change user password with $data['new-password']
+		VM status
+		TO DO : add more infos
 	*/
-	public function change_user_password($order, $model, $data)
+	public function vm_info($order, $service)
 	{
+		$product = $this->di['db']->load('product', $order->product_id);
+		$product_config = json_decode($product->config, 1);
+			
 		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$model->server_id));
-		
-		// Connect to Proxmox API
+		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
+	
+        // Test if login
 		$serveraccess = $this->find_access($server);
-		// How to change Proxmox password?
-
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if ($proxmox->get_version()) {
+			$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
+			// VM monitoring?
+			
+			$output = array(
+				'status'	=> $status['status']
+			);
+			return $output;
+		}
+		else {
+			throw new \Box_Exception("Login to Proxmox Host failed.");
+		}
 	}
 	
 	/*
+		Reboot VM
+	*/
+	public function vm_reboot($order, $service)
+	{
+		$product = $this->di['db']->load('product', $order->product_id);
+		$product_config = json_decode($product->config, 1);
+			
+		// Retrieve associated server
+		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
+	
+        // Test if login
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if ($proxmox->login()) {
+			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/shutdown");
+			$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
+			
+			// Wait until the VM has been shut down if the VM exists
+			if(!empty($status)){
+				while ($status['status'] != 'stopped') {
+					sleep(10);
+					$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/shutdown");
+					$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
+				}
+			}
+			// Restart
+			if($proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/start")) {
+				sleep(10);
+				$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
+				while ($status['status'] != 'running')
+				{
+						$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/start");
+						sleep(10);
+						$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
+						// Starting twice => error...
+				}
+				return true;
+			}
+			else {
+				throw new \Box_Exception("Reboot failed");
+			}
+		}
+		else {
+			throw new \Box_Exception("Login to Proxmox Host failed.");
+		}
+	}
+	
+	/*
+		Start VM
+	*/
+	public function vm_start($order, $service)
+	{
+		$product = $this->di['db']->load('product', $order->product_id);
+		$product_config = json_decode($product->config, 1);
+			
+		// Retrieve associated server
+		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
+	
+        // Test if login
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if ($proxmox->login()) {
+			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/start");
+			return true;
+		}
+		else {
+			throw new \Box_Exception("Login to Proxmox Host failed.");
+		}
+	}
+	
+	/*
+		Shutdown VM
+	*/
+	public function vm_shutdown($order, $service)
+	{
+		$product = $this->di['db']->load('product', $order->product_id);
+		$product_config = json_decode($product->config, 1);
+			
+		// Retrieve associated server
+		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
+	
+        // Test if login
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if ($proxmox->login()) {
+			$settings = array(
+				'forceStop' 	=> true
+			);
+		
+			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/shutdown", $settings);
+			return true;
+		}
+		else {
+			throw new \Box_Exception("Login to Proxmox Host failed.");
+		}
+	}
+	
+	
+	/*
+		VM iframe for Web CLI
+	*/
+	public function vm_cli($order, $service)
+	{
+		$product = $this->di['db']->load('product', $order->product_id);
+		$product_config = json_decode($product->config, 1);
+		$client  = $this->di['db']->load('client', $order->client_id);
+			
+		// Retrieve associated server
+		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
+	
+        // Find access route
+		$serveraccess = $this->find_access($server);
+		
+		// Setup console type
+		if($product_config['virt']=='qemu') {$console='kvm';}
+		else {$console='shell';}
+
+		// The user enters the password to see the iframe: TBD
+			//$password = 'test';
+		//$proxmox = new PVE2_API($serveraccess, $client->id, $service->node, $password);
+		
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if ($proxmox->login()) {
+			$proxmox->setCookie();
+			$cli = $console = '<iframe  src="https://'.$serveraccess.':8006/?console='.$console.'&novnc=1&vmid='.$service->vmid.'&node='.$service->node.'" frameborder="0" scrolling="no" width="100%" height="600px"></iframe>';
+			return $cli;
+		}
+		else {
+			throw new \Box_Exception("Login to Proxmox VM failed.");
+		}
+	}
+
+	
+	/* ################################################################################################### */
+    /* #####################################  Server Management  ######################################### */
+    /* ################################################################################################### */
+
+
+	/*
 		Test connection
 	*/
-	public function test_connection($server)
+	public function test_connection($server) 
 	{
         // Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
-		if ($proxmox->login()) {
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		// check if tokenname and tokenvalue contain values by checking their content
+		if (empty($server->tokenname) || empty($server->tokenvalue)) {
+			if (!empty($server->root_user) && !empty($server->root_password)) {
+				
+				if ($proxmox->login()) {
+					return true;
+				} else {
+					throw new \Box_Exception("Login to Proxmox Host failed");
+				}
+			} else {
+				throw new \Box_Exception("No login information provided");
+			}
+		} else if ($proxmox->get_version()) {
 			return true;
 		} else {
 			throw new \Box_Exception("Failed to connect to the server.");
@@ -553,164 +770,247 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	}
 	
 	/*
-		VM status
-		TO DO : add more infos
-	*/
-	public function vm_info($order, $service)
+		Find server hardware usage information "getHardwareData"
+	*/ 
+	public function getHardwareData($server)
 	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-			
 		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
-	
-        // Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
-		if ($proxmox->login()) {
-			$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
-			// VM monitoring?
-			
-			$output = array(
-				'status'	=> $status['status']
-			);
-			return $output;
-		}
-		else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
-		}
-	}
-	
-	/*
-		Reboot VM
-	*/
-	public function vm_reboot($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-			
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
-	
-        // Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
-		if ($proxmox->login()) {
-			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/shutdown");
-			$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
-			
-			// Wait until the VM has been shut down if the VM exists
-			if(!empty($status)){
-				while ($status['status'] != 'stopped') {
-					sleep(10);
-					$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/shutdown");
-					$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
-				}
-			}
-			// Restart
-			if($proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/start")) {
-				sleep(10);
-				$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
-				while ($status['status'] != 'running')
-				{
-						$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/start");
-						sleep(10);
-						$status = $proxmox->get("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/current");
-						// Starting twice => error...
-				}
-				return true;
-			}
-			else {
-				throw new \Box_Exception("Reboot failed");
-			}
-		}
-		else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
-		}
-	}
-	
-	/*
-		Start VM
-	*/
-	public function vm_start($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-			
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
-	
-        // Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
-		if ($proxmox->login()) {
-			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/start");
-			return true;
-		}
-		else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
-		}
-	}
-	
-	/*
-		Shutdown VM
-	*/
-	public function vm_shutdown($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-			
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
-	
-        // Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
-		if ($proxmox->login()) {
-			$settings = array(
-				'forceStop' 	=> true
-			);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
 		
-			$proxmox->post("/nodes/".$service->node."/".$product_config['virt']."/".$service->vmid."/status/shutdown", $settings);
-			return true;
-		}
-		else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
+		if ($proxmox->login()) {			
+			$hardware = $proxmox->get("/nodes/".$server->name."/status");
+			return $hardware;
+		} else {
+			throw new \Box_Exception("Failed to connect to the server. hw Token Access Failed");
 		}
 	}
-	
-	
-	/*
-		VM iframe for Web CLI
-	*/
-	public function vm_cli($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-		$client  = $this->di['db']->load('client', $order->client_id);
-			
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server','id=:id',array(':id'=>$service->server_id));
-	
-        // Find access route
-		$serveraccess = $this->find_access($server);
-		
-		// Setup console type
-		if($product_config['virt']=='qemu') {$console='kvm';}
-		else {$console='shell';}
 
-		// The user enters the password to see the iframe: TBD
-			//$password = 'test';
-		//$proxmox = new PVE2_API($serveraccess, $client->id, $service->node, $password);
-		
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
+	public function getStorageData($server)
+	{
+		// Retrieve associated server
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
 		if ($proxmox->login()) {
-			$proxmox->setCookie();
-			$cli = $console = '<iframe  src="https://'.$serveraccess.':8006/?console='.$console.'&novnc=1&vmid='.$service->vmid.'&node='.$service->node.'" frameborder="0" scrolling="no" width="100%" height="600px"></iframe>';
-			return $cli;
-		}
-		else {
-			throw new \Box_Exception("Login to Proxmox VM failed.");
+			$storage = $proxmox->get("/nodes/".$server->name."/storage");
+			return $storage;
+		} else {
+			throw new \Box_Exception("Failed to connect to the server. st");
 		}
 	}
+
+
+	
+
+	/* ################################################################################################### */
+    /* ########################################  Permissions  ############################################ */
+    /* ################################################################################################### */
+
+	/**
+	* Function to set up proxmox server for fossbilling
+	* @param $server - server object
+	* @return array - array of permission information
+	*/
+	public function prepare_pve_setup($server){
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if (!$proxmox->login()) {
+			throw new \Box_Exception("Failed to connect to the server. ");
+		}
+		// Create api token for Admin user if not logged in via api token
+		if (empty($server->tokenname) || empty($server->tokenvalue)) {
+
+			// check if the user that connects has Realm.AllocateUser permission
+			$permissions = $proxmox->get("/access/permissions");
+			$found_permission = 0;
+			//echo "<script>console.log('".json_encode($permissions)."');</script>";
+			foreach ($permissions as $permission) {
+				if ($permission['Realm.AllocateUser'] == 1) {
+					$found_permission += 1;
+				}
+			}
+			if (!$found_permission) {
+				throw new \Box_Exception("User does not have Realm.AllocateUser permission");
+			}
+
+			// Validate if there already is a group for fossbilling
+			$groups = $proxmox->get("/access/groups");
+			$foundgroups = 0;
+			foreach ($groups as $group) {
+				//check if group beginning with fossbilling exists
+				if (strpos($group['groupid'], 'fossbilling') === 0) {
+					$foundgroups += 1;
+					$groupid = $group['groupid'];
+				}
+			}
+			// switch case there is no group, create one, if there is one, use it, if there are more than one, throw error
+			switch ($foundgroups) {
+				case 0:
+					// Create Group
+					$groupid = 'fossbilling_'.rand(1000,9999);
+					$newgroup = $proxmox->post("/access/groups", array('groupid' => $groupid, 'comment' => 'fossbilling group', ));
+					break;
+				case 1:
+					// Use Group
+					break;
+				default:
+					throw new \Box_Exception("More than one group found");
+				break;
+			}
+
+
+			// Validate if there already is a user & token for fossbilling
+			$users = $proxmox->get("/access/users");
+			$found = 0;
+			foreach ($users as $user) {
+				//check if user beginning with fossbilling exists
+				if (strpos($user['userid'], 'fb') === 0) {
+					$found += 1;
+					$userid = $user['userid'];
+				}
+				// switch case there is no user, create one, if there is one, use it, if there are more than one, throw error
+				switch ($found) {
+					case 0:
+						// Create user
+						$userid = 'fb_'.rand(1000,9999).'@pve'; // TODO: Make realm configurable in the module settings
+						$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->generateRandomPassword(16), 'enable' => 1, 'comment' => 'fossbilling user', 'groups' => $groupid ,));
+
+						// Create token
+
+						$token = $proxmox->post("/access/users/".$userid."/token/fb_access",array());
+						// check if token was created
+						if ($token) {
+							$server->tokenname = $token['full-tokenid'];
+							$server->tokenvalue = $token['value'];
+						} else {
+							throw new \Box_Exception("Failed to create token for fossbilling user");
+							break;
+						}
+						break;
+					case 1:
+						// Create token 
+						$token = $proxmox->post("/access/users/".$userid."/token/fb_access",array());
+						if ($token) {
+							$server->tokenname = $token['full-tokenid'];
+							$server->tokenvalue = $token['value'];
+						} else {
+							throw new \Box_Exception("Failed to create token for fossbilling user");
+							break;
+						}
+						break;
+					default:
+						throw new \Box_Exception("There are more than one fossbilling users on the server. Please delete all but one.");
+						break;
+					}
+				// Create permissions for the token we just created
+				// Setup permissions for that token (Admin user) so that it can create users and groups and manage them
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEUserAdmin', 'propagate' => 1, 'users' => $userid));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEAuditor', 'propagate' => 1, 'users' => $userid));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVESysAdmin', 'propagate' => 1, 'users' => $userid));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEPoolAdmin', 'propagate' => 1, 'users' => $userid));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEUserAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEAuditor', 'propagate' => 1, 'tokens' => $server->tokenname));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVESysAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEPoolAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+				sleep(5);
+				// Check if permissions were created correctly by logging in and creating another user
+				/*echo "<script>console.log('".json_encode($serveraccess)."');</script>";
+				echo "<script>console.log('".json_encode($userid)."');</script>";
+				echo "<script>console.log('".json_encode($server->realm)."');</script>";
+				echo "<script>console.log('".json_encode($server->tokenname)."');</script>";
+				echo "<script>console.log('".json_encode($server->tokenvalue)."');</script><br /><br />";*/
+				$server->root_password = null;
+				unset($proxmox);
+
+				//echo "<script>console.log('testpmx: ".json_encode($testpmx)."');</script>";
+							
+				return $this->test_access($server);
+			}
+		}
+	}
+
+			
+    public function test_access($server) {
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if (!$proxmox->login()) {
+			throw new \Box_Exception("Failed to connect to the server. testpmx");
+		}
+
+		$userid = 'tfb_'.rand(1000,9999).'@pve'; // TODO: Make realm configurable in the module settings
+		$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->generateRandomPassword(16), 'enable' => '1', 'comment' => 'fossbilling user 2'));
+
+		 $newuser = $proxmox->get("/access/users/".$userid);
+		if (!$newuser) {
+			throw new \Box_Exception("Failed to create test user for fossbilling");
+		} else {
+			// Delete user
+			$deleteuser = $proxmox->delete("/access/users/".$userid);
+			$deleteuser = $proxmox->get("/access/users/".$userid);
+			if ($deleteuser) {
+				throw new \Box_Exception("Failed to delete test user for fossbilling. Check Permissions");
+			} else {
+				//delete root password from server
+				$server->root_password = null;
+				return $server;
+			}
+		} 
+	}
+
+	// Function to create a new proxmox User on the server and save the token in the database
+	public function create_client_user($server, $client) {
+		$clientuser = $this->di['db']->dispense('service_proxmox_users');
+		$clientuser->client_id = $client->id;
+		$this->di['db']->store($clientuser);
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		if (!$proxmox->login()) {
+			throw new \Box_Exception("Failed to connect to the server. create_client_user");
+		}
+		$userid = 'fb_customer_'.$client->id.'@pve'; // TODO: Make realm configurable in the module settings
+		$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->generateRandomPassword(16), 'enable' => '1', 'comment' => 'fossbilling user '.$client->id));
+		$newuser = $proxmox->get("/access/users/".$userid);
+
+		// Create Token for Client
+		$clientuser->admin_tokenname = 'fb_admin_'.$client->id;
+		$clientuser->admin_tokenvalue = $proxmox->post("/access/users/".$userid."/token".$clientuser->admin_tokenname, array() );
+		$clientuser->view_tokenname = 'fb_view_'.$client->id;
+		$clientuser->view_tokenvalue = $proxmox->post("/access/users/".$userid."/token".$clientuser->view_tokenname, array() );
+		$this->di['db']->store($clientuser);
+
+		// Check if the client already has a pool and if not create it.
+		$pool = $proxmox->get("/pools/".$client->id);
+		if (!$pool) {
+			$pool = $proxmox->post("/pools", array('poolid' => $client->id, 'comment' => 'fossbilling pool '.$client->id));
+		}	
+		// Add permissions for client
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'tokens' => $clientuser->view_tokenname));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'tokens' => $clientuser->admin_tokenname));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'tokens', $clientuser->view_tokenname));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens', $clientuser->admin_tokenname));
+
+	}
+
+	/* ################################################################################################### */
+    /* ######################################  Helper functions  ######################################### */
+    /* ################################################################################################### */
+
+	public function generateRandomPassword($length = 8) {
+		$characters = 'abcdefghijklmnopqrstuvwxy#@€zABCDEFGHI.J$KLM!NOPQRSTUVWXYZ0123456789';
+		$password = '';
+	
+		$max = strlen($characters) - 1;
+		for ($i = 0; $i < $length; $i++) {
+			$index = random_int(0, $max);
+			$password .= $characters[$index];
+		}
+	
+		return $password;
+	}
+	
 }
