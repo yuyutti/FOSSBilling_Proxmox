@@ -15,6 +15,8 @@
 
 namespace Box\Mod\Serviceproxmox\Api;
 
+
+
 /* Manage the Proxmox Hosting Service */
 
 class Admin extends \Api_Abstract
@@ -32,7 +34,6 @@ class Admin extends \Api_Abstract
     {
         $servers = $this->di['db']->find('service_proxmox_server');
         $servers_grouped = array();
-
         foreach ($servers as $server) {
             // find all vms on this server and count cpu cores and ram to return in servers_grouped
             $vms = $this->di['db']->find('service_proxmox', 'server_id=:id', array(':id' => $server->id));
@@ -373,6 +374,7 @@ class Admin extends \Api_Abstract
      */
     public function server_test_connection($data)
     {
+
         $required = array(
             'id'    => 'Server id is missing',
         );

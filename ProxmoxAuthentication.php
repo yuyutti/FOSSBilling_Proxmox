@@ -18,28 +18,8 @@ namespace Box\Mod\Serviceproxmox;
 /**
  * Proxmox module for FOSSBilling
  */
-class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
+trait ProxmoxAuthentication
 {
-	protected $di;
-	protected $service;
-
-	public function setDi(\Pimple\Container|null $di): void
-	{
-		$this->di = $di;
-	}
-
-	public function getDi(): ?\Pimple\Container
-	{
-		return $this->di;
-	}
-
-	// get service from $di
-	public function __construct()
-	{
-		$this->service = new Service();
-	}
-
-
 	/* ################################################################################################### */
 	/* ########################################  Permissions  ############################################ */
 	/* ################################################################################################### */
@@ -51,7 +31,8 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 	 */
 	public function prepare_pve_setup($server)
 	{
-		$serveraccess = $this->service->find_access($server);
+
+		$serveraccess = $this->find_access($server);
 		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. ");
@@ -173,7 +154,7 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 
 	public function test_access($server)
 	{
-		$serveraccess = $this->service->find_access($server);
+		$serveraccess = $this->find_access($server);
 		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. testpmx");
@@ -205,7 +186,7 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 		$clientuser = $this->di['db']->dispense('service_proxmox_users');
 		$clientuser->client_id = $client->id;
 		$this->di['db']->store($clientuser);
-		$serveraccess = $this->service->find_access($server);
+		$serveraccess = $this->find_access($server);
 		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. create_client_user");

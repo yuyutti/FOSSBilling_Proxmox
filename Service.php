@@ -23,6 +23,7 @@ require_once 'pve2_api.class.php';
 class Service implements \FOSSBilling\InjectionAwareInterface
 {
 	protected $di;
+
 	public function setDi(\Pimple\Container|null $di): void
 	{
 		$this->di = $di;
@@ -32,6 +33,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	{
 		return $this->di;
 	}
+	use ProxmoxAuthentication;
+	use ProxmoxServer;
 
 	public function validateCustomForm(array &$data, array $product)
 	{
@@ -227,7 +230,6 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	 */
 	public function activate($order, $model)
 	{
-		$pmxauth = new ProxmoxAuthentication();
 		if (!is_object($model)) {
 			throw new \Box_Exception('Could not activate order. Service was not created');
 		}
@@ -250,7 +252,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		// Retrieve or create client unser account in service_proxmox_users
 		$clientuser = $this->di['db']->findOne('service_proxmox_users', 'server_id = ? and client_id = ?', array($server->id, $client->id));
 		if (!$clientuser) {
-			$pmxauth->create_client_user($server, $client);
+			$this->create_client_user($server, $client);
 		}
 
 		// Connect to Proxmox API
@@ -651,6 +653,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	*/
 	public function vm_cli($order, $service)
 	{
+
 		$product = $this->di['db']->load('product', $order->product_id);
 		$product_config = json_decode($product->config, 1);
 		$client  = $this->di['db']->load('client', $order->client_id);
@@ -679,125 +682,6 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			return $cli;
 		} else {
 			throw new \Box_Exception("Login to Proxmox VM failed.");
-		}
-	}
-
-
-	/* ################################################################################################### */
-	/* #####################################  Server Management  ######################################### */
-	/* ################################################################################################### */
-
-
-	/*
-		Test connection
-	*/
-	public function test_connection($server)
-	{
-		// Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		// check if tokenname and tokenvalue contain values by checking their content
-		if (empty($server->tokenname) || empty($server->tokenvalue)) {
-			if (!empty($server->root_user) && !empty($server->root_password)) {
-
-				if ($proxmox->login()) {
-					return true;
-				} else {
-					throw new \Box_Exception("Login to Proxmox Host failed");
-				}
-			} else {
-				throw new \Box_Exception("No login information provided");
-			}
-		} else if ($proxmox->get_version()) {
-			return true;
-		} else {
-			throw new \Box_Exception("Failed to connect to the server.");
-		}
-	}
-
-
-	/*
-		Find empty slots
-	*/
-	public function find_empty($product)
-	{
-		$config = json_decode($product->config, 1);
-		$group = $config['group'];
-		$filling = $config['filling'];
-
-		// Retrieve list of active server from this group
-		// Retrieve the number of slots used per server
-		if ($filling == 'least') {
-			$condition = "ORDER BY ratio ASC";
-		} else if ($filling == 'full') {
-			$condition = "ORDER BY ratio DESC";
-		} else {
-			$condition = "";
-		}
-
-		// Retrieve only non-full active servers sorted by filling ratio (DESC for filling the least filled, ASC for filling servers up) - COALESC transforms null cells into zeros for calculations.
-		$sql = "SELECT `server`.id, `server`.group, `server`.active, `server`.slots, COALESCE(`service`.used,0) as used, `server`.slots - COALESCE(`service`.used,0) as free, COALESCE(`service`.used,0) / `server`.slots as ratio
-				FROM `service_proxmox_server` as `server`
-				LEFT JOIN (
-					SELECT COUNT(*) AS used, `service`.server_id
-					FROM `service_proxmox` as `service`
-					LEFT JOIN `client_order` ON `client_order`.service_id=`service`.id AND `client_order`.status = 'active'
-				) as `service` ON `service`.server_id=`server`.id
-				WHERE `server`.slots <> COALESCE(`service`.used,0) AND `server`.active=1 AND `server`.group='" . $group . "'
-				" . $condition . " LIMIT 1";
-
-		$appropriate_server = $this->di['db']->getAll($sql);
-		if (!empty($appropriate_server[0]['id'])) {
-			return $appropriate_server[0]['id'];
-		} else {
-			throw new \Box_Exception('No server found');
-			return false;
-		}
-	}
-
-	/*
-		Find access to server (hostname, ipv4, ipv6)
-	*/
-	public function find_access($server)
-	{
-		if (!empty($server->ipv6)) {
-			return $server->ipv6;
-		} else if (!empty($server->ipv4)) {
-			return $server->ipv4;
-		} else if (!empty($server->hostname)) {
-			return $server->hostname;
-		} else {
-			throw new \Box_Exception('No IPv6, IPv4 or Hostname found for server ' . $server->id);
-		}
-	}
-
-	/*
-		Find server hardware usage information "getHardwareData"
-	*/
-	public function getHardwareData($server)
-	{
-		// Retrieve associated server
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-
-		if ($proxmox->login()) {
-			$hardware = $proxmox->get("/nodes/" . $server->name . "/status");
-			return $hardware;
-		} else {
-			throw new \Box_Exception("Failed to connect to the server. hw Token Access Failed");
-		}
-	}
-
-	public function getStorageData($server)
-	{
-		// Retrieve associated server
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		if ($proxmox->login()) {
-			$storage = $proxmox->get("/nodes/" . $server->name . "/storage");
-			return $storage;
-		} else {
-			throw new \Box_Exception("Failed to connect to the server. st");
 		}
 	}
 }
