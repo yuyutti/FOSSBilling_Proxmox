@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Proxmox module for FOSSBilling
  *
@@ -447,7 +448,7 @@ class Admin extends \Api_Abstract
             'free'              => $storage->free,
             'percent_used'      => round($storage->used / $storage->size * 100, 2),
             // add list of storage classes
-            'storageclasses'    => $this->storageclasses_get_list($data),
+            'storageclasses'    => $this->storageclass_get_list($data),
         );
 
         return $output;

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Proxmox module for FOSSBilling
  *
@@ -49,6 +50,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         $app->get('/serviceproxmox/server/:id', 'get_server', array('id' => '[0-9]+'), get_class($this));
         $app->get('/serviceproxmox/storage', 'get_storage', null, get_class($this));
         $app->get('/serviceproxmox/storage/:id', 'get_storage', array('id' => '[0-9]+'), get_class($this));
+        // TODOS:
         // add vm management
         // add vm templates management
         // add vm backups management

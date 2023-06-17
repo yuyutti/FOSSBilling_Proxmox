@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Proxmox module for FOSSBilling
  *
@@ -19,30 +20,39 @@ namespace Box\Mod\Serviceproxmox;
  */
 class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 {
-    protected $di;
+	protected $di;
+	protected $service;
 
-    public function setDi(\Pimple\Container|null $di): void
-    {
-        $this->di = $di;
-    }
+	public function setDi(\Pimple\Container|null $di): void
+	{
+		$this->di = $di;
+	}
 
-    public function getDi(): ?\Pimple\Container
-    {
-        return $this->di;
-    }
+	public function getDi(): ?\Pimple\Container
+	{
+		return $this->di;
+	}
 
-    /* ################################################################################################### */
-    /* ########################################  Permissions  ############################################ */
-    /* ################################################################################################### */
+	// get service from $di
+	public function __construct()
+	{
+		$this->service = new Service();
+	}
+
+
+	/* ################################################################################################### */
+	/* ########################################  Permissions  ############################################ */
+	/* ################################################################################################### */
 
 	/**
-	* Function to set up proxmox server for fossbilling
-	* @param $server - server object
-	* @return array - array of permission information
-	*/
-	public function prepare_pve_setup($server){
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+	 * Function to set up proxmox server for fossbilling
+	 * @param $server - server object
+	 * @return array - array of permission information
+	 */
+	public function prepare_pve_setup($server)
+	{
+		$serveraccess = $this->service->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. ");
 		}
@@ -76,15 +86,15 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 			switch ($foundgroups) {
 				case 0:
 					// Create Group
-					$groupid = 'fossbilling_'.rand(1000,9999);
-					$newgroup = $proxmox->post("/access/groups", array('groupid' => $groupid, 'comment' => 'fossbilling group', ));
+					$groupid = 'fossbilling_' . rand(1000, 9999);
+					$newgroup = $proxmox->post("/access/groups", array('groupid' => $groupid, 'comment' => 'fossbilling group',));
 					break;
 				case 1:
 					// Use Group
 					break;
 				default:
 					throw new \Box_Exception("More than one group found");
-				break;
+					break;
 			}
 
 
@@ -101,12 +111,12 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 				switch ($found) {
 					case 0:
 						// Create user
-						$userid = 'fb_'.rand(1000,9999).'@pve'; // TODO: Make realm configurable in the module settings
-						$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->generateRandomPassword(16), 'enable' => 1, 'comment' => 'fossbilling user', 'groups' => $groupid ,));
+						$userid = 'fb_' . rand(1000, 9999) . '@pve'; // TODO: Make realm configurable in the module settings
+						$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->di['tools'], 'enable' => 1, 'comment' => 'fossbilling user', 'groups' => $groupid,));
 
 						// Create token
 
-						$token = $proxmox->post("/access/users/".$userid."/token/fb_access",array());
+						$token = $proxmox->post("/access/users/" . $userid . "/token/fb_access", array());
 						// check if token was created
 						if ($token) {
 							$server->tokenname = $token['full-tokenid'];
@@ -118,7 +128,7 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 						break;
 					case 1:
 						// Create token 
-						$token = $proxmox->post("/access/users/".$userid."/token/fb_access",array());
+						$token = $proxmox->post("/access/users/" . $userid . "/token/fb_access", array());
 						if ($token) {
 							$server->tokenname = $token['full-tokenid'];
 							$server->tokenvalue = $token['value'];
@@ -130,7 +140,7 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 					default:
 						throw new \Box_Exception("There are more than one fossbilling users on the server. Please delete all but one.");
 						break;
-					}
+				}
 				// Create permissions for the token we just created
 				// Setup permissions for that token (Admin user) so that it can create users and groups and manage them
 				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEUserAdmin', 'propagate' => 1, 'users' => $userid));
@@ -154,30 +164,31 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 				unset($proxmox);
 
 				//echo "<script>console.log('testpmx: ".json_encode($testpmx)."');</script>";
-							
+
 				return $this->test_access($server);
 			}
 		}
 	}
 
-			
-    public function test_access($server) {
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+
+	public function test_access($server)
+	{
+		$serveraccess = $this->service->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. testpmx");
 		}
 
-		$userid = 'tfb_'.rand(1000,9999).'@pve'; // TODO: Make realm configurable in the module settings
-		$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->generateRandomPassword(16), 'enable' => '1', 'comment' => 'fossbilling user 2'));
+		$userid = 'tfb_' . rand(1000, 9999) . '@pve'; // TODO: Make realm configurable in the module settings
+		$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->di['tools']->generatePassword(16, 4), 'enable' => '1', 'comment' => 'fossbilling user 2'));
 
-		 $newuser = $proxmox->get("/access/users/".$userid);
+		$newuser = $proxmox->get("/access/users/" . $userid);
 		if (!$newuser) {
 			throw new \Box_Exception("Failed to create test user for fossbilling");
 		} else {
 			// Delete user
-			$deleteuser = $proxmox->delete("/access/users/".$userid);
-			$deleteuser = $proxmox->get("/access/users/".$userid);
+			$deleteuser = $proxmox->delete("/access/users/" . $userid);
+			$deleteuser = $proxmox->get("/access/users/" . $userid);
 			if ($deleteuser) {
 				throw new \Box_Exception("Failed to delete test user for fossbilling. Check Permissions");
 			} else {
@@ -185,43 +196,44 @@ class ProxmoxAuthentication implements \FOSSBilling\InjectionAwareInterface
 				$server->root_password = null;
 				return $server;
 			}
-		} 
+		}
 	}
 
 	// Function to create a new proxmox User on the server and save the token in the database
-	public function create_client_user($server, $client) {
+	public function create_client_user($server, $client)
+	{
 		$clientuser = $this->di['db']->dispense('service_proxmox_users');
 		$clientuser->client_id = $client->id;
 		$this->di['db']->store($clientuser);
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$serveraccess = $this->service->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. create_client_user");
 		}
-		$userid = 'fb_customer_'.$client->id.'@pve'; // TODO: Make realm configurable in the module settings
-		$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->generateRandomPassword(16), 'enable' => '1', 'comment' => 'fossbilling user '.$client->id));
-		$newuser = $proxmox->get("/access/users/".$userid);
+		$userid = 'fb_customer_' . $client->id . '@pve'; // TODO: Make realm configurable in the module settings
+		$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->di['tools']->generatePassword(16, 4), 'enable' => '1', 'comment' => 'fossbilling user ' . $client->id));
+		$newuser = $proxmox->get("/access/users/" . $userid);
 
 		// Create Token for Client
-		$clientuser->admin_tokenname = 'fb_admin_'.$client->id;
-		$clientuser->admin_tokenvalue = $proxmox->post("/access/users/".$userid."/token".$clientuser->admin_tokenname, array() );
-		$clientuser->view_tokenname = 'fb_view_'.$client->id;
-		$clientuser->view_tokenvalue = $proxmox->post("/access/users/".$userid."/token".$clientuser->view_tokenname, array() );
+		$clientuser->admin_tokenname = 'fb_admin_' . $client->id;
+		$clientuser->admin_tokenvalue = $proxmox->post("/access/users/" . $userid . "/token" . $clientuser->admin_tokenname, array());
+		$clientuser->view_tokenname = 'fb_view_' . $client->id;
+		$clientuser->view_tokenvalue = $proxmox->post("/access/users/" . $userid . "/token" . $clientuser->view_tokenname, array());
 		$this->di['db']->store($clientuser);
 
 		// Check if the client already has a pool and if not create it.
-		$pool = $proxmox->get("/pools/".$client->id);
+		$pool = $proxmox->get("/pools/" . $client->id);
 		if (!$pool) {
-			$pool = $proxmox->post("/pools", array('poolid' => $client->id, 'comment' => 'fossbilling pool '.$client->id));
-		}	
+			$pool = $proxmox->post("/pools", array('poolid' => $client->id, 'comment' => 'fossbilling pool ' . $client->id));
+		}
 		// Add permissions for client
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'tokens' => $clientuser->view_tokenname));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'tokens' => $clientuser->admin_tokenname));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'tokens', $clientuser->view_tokenname));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/'.$client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens', $clientuser->admin_tokenname));
 
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'tokens' => $clientuser->view_tokenname));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'tokens' => $clientuser->admin_tokenname));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'tokens', $clientuser->view_tokenname));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens', $clientuser->admin_tokenname));
 	}
 }

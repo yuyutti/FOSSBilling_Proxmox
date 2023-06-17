@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Proxmox module for FOSSBilling
  *
@@ -22,7 +23,6 @@ require_once 'pve2_api.class.php';
 class Service implements \FOSSBilling\InjectionAwareInterface
 {
 	protected $di;
-
 	public function setDi(\Pimple\Container|null $di): void
 	{
 		$this->di = $di;
@@ -32,7 +32,6 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	{
 		return $this->di;
 	}
-
 
 	public function validateCustomForm(array &$data, array $product)
 	{
@@ -228,6 +227,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	 */
 	public function activate($order, $model)
 	{
+		$pmxauth = new ProxmoxAuthentication();
 		if (!is_object($model)) {
 			throw new \Box_Exception('Could not activate order. Service was not created');
 		}
@@ -250,12 +250,12 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		// Retrieve or create client unser account in service_proxmox_users
 		$clientuser = $this->di['db']->findOne('service_proxmox_users', 'server_id = ? and client_id = ?', array($server->id, $client->id));
 		if (!$clientuser) {
-			$this->create_clientuser($server, $client);
+			$pmxauth->create_client_user($server, $client);
 		}
 
 		// Connect to Proxmox API
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 
 		// Create Proxmox VM
 		if ($proxmox->login()) {
@@ -316,14 +316,14 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 				// Start the server
 				sleep(20);
-				$proxmox->post("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/start");
+				$proxmox->post("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
 				$status = $proxmox->get("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
 
 				if (!empty($status)) {
 					sleep(10);
 					// Wait until it has been started
 					while ($status['status'] != 'running') {
-						$proxmox->post("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/start");
+						$proxmox->post("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
 						sleep(10);
 						$status = $proxmox->get("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
 						// Starting twice => error...
@@ -403,6 +403,20 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		);
 	}
 
+	public function toApiArray($model)
+	{
+		// Retrieve associated server
+		$server = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $model->server_id));
+
+		return array(
+			'id'              => $model->id,
+			'client_id'       => $model->client_id,
+			'server_id'       => $model->server_id,
+			'username'        => $model->username,
+			'mailbox_quota'   => $model->mailbox_quota,
+			'server' 		  => $server,
+		);
+	}
 	/* ################################################################################################### */
 	/* #######################################  VM Management  ########################################### */
 	/* ################################################################################################### */
@@ -476,17 +490,17 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 			// Connect to YNH API
 			$serveraccess = $this->find_access($server);
-			$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+			$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 
 			if ($proxmox->login()) {
-				$proxmox->post("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/shutdown");
+				$proxmox->post("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/shutdown", array());
 				$status = $proxmox->get("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/current");
 
 				// Wait until the server has been shut down if the server exists
 				if (!empty($status)) {
 					while ($status['status'] != 'stopped') {
 						sleep(10);
-						$proxmox->post("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/shutdown");
+						$proxmox->post("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/shutdown", array());
 						$status = $proxmox->get("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/current");
 					}
 				} else {
@@ -524,7 +538,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 		// Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->get_version()) {
 			$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
 			// VM monitoring?
@@ -551,25 +565,25 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 		// Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->login()) {
-			$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/shutdown");
+			$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/shutdown", array());
 			$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
 
 			// Wait until the VM has been shut down if the VM exists
 			if (!empty($status)) {
 				while ($status['status'] != 'stopped') {
 					sleep(10);
-					$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/shutdown");
+					$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/shutdown", array());
 					$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
 				}
 			}
 			// Restart
-			if ($proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start")) {
+			if ($proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start", array())) {
 				sleep(10);
 				$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
 				while ($status['status'] != 'running') {
-					$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start");
+					$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start", array());
 					sleep(10);
 					$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
 					// Starting twice => error...
@@ -596,9 +610,9 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 		// Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->login()) {
-			$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start");
+			$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start", array());
 			return true;
 		} else {
 			throw new \Box_Exception("Login to Proxmox Host failed.");
@@ -618,7 +632,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 		// Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->login()) {
 			$settings = array(
 				'forceStop' 	=> true
@@ -658,7 +672,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		//$password = 'test';
 		//$proxmox = new PVE2_API($serveraccess, $client->id, $service->node, $password);
 
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->login()) {
 			$proxmox->setCookie();
 			$cli = $console = '<iframe  src="https://' . $serveraccess . ':8006/?console=' . $console . '&novnc=1&vmid=' . $service->vmid . '&node=' . $service->node . '" frameborder="0" scrolling="no" width="100%" height="600px"></iframe>';
@@ -681,7 +695,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	{
 		// Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		// check if tokenname and tokenvalue contain values by checking their content
 		if (empty($server->tokenname) || empty($server->tokenvalue)) {
 			if (!empty($server->root_user) && !empty($server->root_password)) {
@@ -764,7 +778,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	{
 		// Retrieve associated server
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 
 		if ($proxmox->login()) {
 			$hardware = $proxmox->get("/nodes/" . $server->name . "/status");
@@ -778,7 +792,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	{
 		// Retrieve associated server
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->login()) {
 			$storage = $proxmox->get("/nodes/" . $server->name . "/storage");
 			return $storage;
@@ -802,7 +816,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	public function prepare_pve_setup($server)
 	{
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. ");
 		}
@@ -924,7 +938,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	public function test_access($server)
 	{
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. testpmx");
 		}
@@ -956,7 +970,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$clientuser->client_id = $client->id;
 		$this->di['db']->store($clientuser);
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, $server->tokenname, $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. create_client_user");
 		}

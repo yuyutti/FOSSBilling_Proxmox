@@ -39,7 +39,7 @@ class PVE2_API {
 	protected $login_ticket_timestamp = null;
 	protected $cluster_node_list = null;
 
-	public function __construct ($hostname, $username, $realm, $password, $tokenid, $tokensecret, $port = 8006, $verify_ssl = false) {
+	public function __construct ($hostname, $username, $realm, $password, $port = 8006, $verify_ssl = false, $tokenid = null, $tokensecret = null, ) {
 		if ((empty($hostname) || empty($realm)) || (empty($username) && empty($password) && empty($tokenid) && empty($tokensecret)) || empty($port)) {
 			throw new PVE2_Exception("Hostname/Realm and either Username/Password or TokenId/TokenSecret are required for PVE2_API object constructor.", 1);
 		}
@@ -56,14 +56,14 @@ class PVE2_API {
 			throw new PVE2_Exception("verify_ssl must be boolean.", 7);
 		}
 
-		$this->hostname   = $hostname;
-		$this->username   = $username;
-		$this->realm      = $realm;
-		$this->tokenid    = $tokenid;
-		$this->tokensecret= $tokensecret;
-		$this->password   = $password;
-		$this->port       = $port;
-		$this->verify_ssl = $verify_ssl;
+		$this->hostname   	= $hostname;
+		$this->username   	= $username;
+		$this->realm      	= $realm;
+		$this->tokenid    	= $tokenid;
+		$this->tokensecret	= $tokensecret;
+		$this->password   	= $password;
+		$this->port       	= $port;
+		$this->verify_ssl 	= $verify_ssl;
 		// Check if we have a tokenid and tokensecret, if so, we can use API token access.
 		if (!empty($tokenid) && !empty($tokensecret)) {
 			$this->api_token_access = true;
