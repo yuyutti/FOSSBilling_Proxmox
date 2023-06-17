@@ -42,13 +42,13 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
             ),
         );
     }
-    
+
     public function register(\Box_App &$app)
     {
-        $app->get('/serviceproxmox',          'get_index', null, get_class($this));
-        $app->get('/serviceproxmox/server/:id',     'get_server', array('id'=>'[0-9]+'), get_class($this));
-        $app->get('/serviceproxmox/storage',          'get_storage', null, get_class($this));
-        $app->get('/serviceproxmox/storage/:id',     'get_storage', array('id'=>'[0-9]+'), get_class($this));
+        $app->get('/serviceproxmox', 'get_index', null, get_class($this));
+        $app->get('/serviceproxmox/server/:id', 'get_server', array('id' => '[0-9]+'), get_class($this));
+        $app->get('/serviceproxmox/storage', 'get_storage', null, get_class($this));
+        $app->get('/serviceproxmox/storage/:id', 'get_storage', array('id' => '[0-9]+'), get_class($this));
         // add vm management
         // add vm templates management
         // add vm backups management
@@ -64,14 +64,14 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
     public function get_server(\Box_App $app, $id)
     {
         $api = $this->di['api_admin'];
-        $server = $api->Serviceproxmox_server_get(array('server_id'=>$id));
-        return $app->render('mod_serviceproxmox_server', array('server'=>$server));
+        $server = $api->Serviceproxmox_server_get(array('server_id' => $id));
+        return $app->render('mod_serviceproxmox_server', array('server' => $server));
     }
 
     public function get_storage(\Box_App $app, $id)
     {
         $api = $this->di['api_admin'];
-        $storage = $api->Serviceproxmox_storage_get(array('storage_id'=>$id));
-        return $app->render('mod_serviceproxmox_storage', array('storage'=>$storage));
+        $storage = $api->Serviceproxmox_storage_get(array('storage_id' => $id));
+        return $app->render('mod_serviceproxmox_storage', array('storage' => $storage));
     }
 }
