@@ -13,8 +13,8 @@ Based on [previous work](https://github.com/scith/BoxBilling_Proxmox) by [Scith]
 - Manage pools of Proxmox servers (orders can be allocated to servers automatically based on their capacity)
 - Complete Privilege Separation (each client can only see their own VMs),
 - Admin can't see inside client's VMs (Only the VM ID, Name, Status, IP, RAM, CPU, Disk, Bandwidth, etc.)
-- Provision LXC containers
-- Provision QEMU KVM machines
+- Provision LXC containers (not tested / might not yet work)
+- Provision QEMU KVM machines (tested, but needs very specific product setup)
 - Clients can start, shutdown and reboot their VMs (online console not working right now)
 - Proxmox Servers do not have to be reachable from the Internet (only the FOSSBilling server needs to be able to reach the Proxmox server)
 
