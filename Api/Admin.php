@@ -39,24 +39,52 @@ class Admin extends \Api_Abstract
             $vms = $this->di['db']->find('service_proxmox', 'server_id=:id', array(':id' => $server->id));
             $server_cpu_cores = 0;
             $server_ram = 0;
+            // count vms
+            $vm_count = 0;
             foreach ($vms as $vm) {
                 $server_cpu_cores += $vm->cpu_cores;
                 $server_ram += $vm->ram;
+                $vm_count++;
             }
 
+            // calculate ram percent if ram is not 0
+            if ($server->ram != 0) {
+                $server_ram_percent = round($server_ram / $server->ram * 100, 0, PHP_ROUND_HALF_DOWN);
+            } else {
+                $server_ram_percent = 0;
+            }
+
+            // get overprovisioning factor from extension config and calculate overprovisioned cpu cores
+            $config = $this->di['mod_config']('Serviceproxmox');
+            $overprovion_percent = $config['cpu_overprovisioning'];
+            //echo "<script>console.log('Debug Objects: " . $config . "' );</script>";
+            $cpu_cores_overprovision = $server->cpu_cores + round($server->cpu_cores * $overprovion_percent / 100, 0, PHP_ROUND_HALF_DOWN);
+
+            // Get ram overprovisioning factor from extension config and calculate overprovisioned ram
+            $ram_overprovion_percent = $config['ram_overprovisioning'];
+            $ram_overprovision = round($server->ram / 1024 / 1024 / 1024, 0, PHP_ROUND_HALF_DOWN) + round(round($server->ram / 1024 / 1024 / 1024, 0, PHP_ROUND_HALF_DOWN) * $ram_overprovion_percent / 100, 0, PHP_ROUND_HALF_DOWN);
+
+
             $servers_grouped[$server['group']]['group'] = $server->group;
+
             $servers_grouped[$server['group']]['servers'][$server['id']] = array(
-                'id'                    => $server->id,
-                'name'                  => $server->name,
-                'group'                 => $server->group,
-                'ipv4'                  => $server->ipv4,
-                'hostname'              => $server->hostname,
-                'access'                => $this->getService()->find_access($server),
-                'cpu_cores'             => $server->cpu_cores,
-                'cpu_cores_allocated'   => $server_cpu_cores,
-                'ram_allocated'         => $server_ram,
-                'ram'                   => round($server->ram / 1024 / 1024, 0, PHP_ROUND_HALF_DOWN),
-                'active'                => $server->active,
+                'id'                        => $server->id,
+                'name'                      => $server->name,
+                'group'                     => $server->group,
+                'ipv4'                      => $server->ipv4,
+                'hostname'                  => $server->hostname,
+                'vm_count'                  => $vm_count,
+                'access'                    => $this->getService()->find_access($server),
+                'cpu_cores'                 => $server->cpu_cores,
+                'cpu_cores_allocated'       => $server->cpu_cores_allocated,
+                'cpu_cores_overprovision'   => $cpu_cores_overprovision,
+                'cpu_cores_provisioned'     => $server_cpu_cores,
+                'ram_provisioned'           => $server_ram,
+                'ram_overprovision'         => $ram_overprovision,
+                'ram_used'                  => round($server->ram_allocated / 1024 / 1024 / 1024, 0, PHP_ROUND_HALF_DOWN),
+                'ram'                       => round($server->ram / 1024 / 1024 / 1024, 0, PHP_ROUND_HALF_DOWN),
+                'ram_percent'               => $server_ram_percent,
+                'active'                    => $server->active,
             );
         }
         return $servers_grouped;
@@ -73,7 +101,58 @@ class Admin extends \Api_Abstract
         $storages_grouped = array();
         foreach ($storages as $storage) {
             $server = $this->di['db']->getExistingModelById('service_proxmox_server', $storage->server_id, 'Server not found');
+            switch ($storage->type) {
+                case 'local':
+                    $storage->type = 'Local';
+                    break;
+                case 'nfs':
+                    $storage->type = 'NFS';
+                    break;
+                case 'dir':
+                    $storage->type = 'Directory';
+                    break;
+                case 'iscsi':
+                    $storage->type = 'iSCSI';
+                    break;
+                case 'lvm':
+                    $storage->type = 'LVM';
+                    break;
+                case 'lvmthin':
+                    $storage->type = 'LVM thinpool';
+                    break;
+                case 'rbd':
+                    $storage->type = 'Ceph';
+                    break;
+                case 'sheepdog':
+                    $storage->type = 'Sheepdog';
+                    break;
+                case 'glusterfs':
+                    $storage->type = 'GlusterFS';
+                    break;
+                case 'cephfs':
+                    $storage->type = 'CephFS';
+                    break;
+                case 'zfs':
+                    $storage->type = 'ZFS';
+                    break;
+                case 'zfspool':
+                    $storage->type = 'ZFS Pool';
+                    break;
+                case 'iscsidirect':
+                    $storage->type = 'iSCSI Direct';
+                    break;
+                case 'drbd':
+                    $storage->type = 'DRBD';
+                    break;
+                case 'dev':
+                    $storage->type = 'Device';
+                    break;
+            }
             $storages_grouped[$storage['type']]['group'] = $storage->type;
+            // Map storage group types to better descriptions for display
+            // TODO: Add translations
+
+
             $storages_grouped[$storage['type']]['storages'][$storage['id']] = array(
                 'id'            => $storage->id,
                 'servername'    => $server->name,
@@ -116,6 +195,21 @@ class Admin extends \Api_Abstract
         return $services;
     }
 
+    // Function to create a new storageclass
+    public function storageclass_create($data)
+    {
+        $storageclass = $this->di['db']->dispense('service_proxmox_storageclass');
+        $storageclass->storageclass = $data['storageClassName'];
+        $this->di['db']->store($storageclass);
+        return $storageclass;
+    }
+
+    // Function get_storageclass
+    public function storageclass_get($data)
+    {
+        $storageclass = $this->di['db']->getExistingModelById('service_proxmox_storageclass', $data['id'], 'Storageclass not found');
+        return $storageclass;
+    }
     /** 
      *	Get list of server groups
      *
@@ -165,7 +259,6 @@ class Admin extends \Api_Abstract
         $server->ipv6               = $data['ipv6'];
         $server->hostname           = $data['hostname'];
         $server->realm              = $data['realm'];
-        $server->slots              = $data['slots'];
         $server->root_user          = $data['root_user'];
         $server->root_password      = $data['root_password'];
         $server->config             = $data['config'];
@@ -195,6 +288,9 @@ class Admin extends \Api_Abstract
     {
         // Retrieve associated server
         $server  = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $data['server_id']));
+        if (!$server) {
+            throw new \Box_Exception('Server not found');
+        }
 
         //TODO: Update settings
         $output = array(
@@ -207,8 +303,6 @@ class Admin extends \Api_Abstract
             'realm'             => $server->realm,
             'tokenname'         => $server->tokenname,
             'tokenvalue'        => str_repeat("*", 26),
-            //'access'          => $this->getService()->find_access($server),
-            'slots'             => $server->slots,
             'root_user'         => $server->root_user,
             'root_password'     => $server->root_password,
             'admin_password'    => $server->admin_password,
@@ -247,7 +341,6 @@ class Admin extends \Api_Abstract
         $server->ipv6             = $data['ipv6'];
         $server->hostname         = $data['hostname'];
         $server->realm            = $data['realm'];
-        $server->slots            = $data['slots'];
         $server->cpu_cores        = $data['cpu_cores'];
         $server->ram              = $data['ram'];
         $server->root_user        = $data['root_user'];
@@ -277,11 +370,19 @@ class Admin extends \Api_Abstract
         );
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
         // check if there are vms provisioned on this server
-        $vms = $this->di['db']->findAll('service_proxmox', 'server_id = :server_id', array(':server_id' => $data['id']));
+        //$this->di['db']->find('service_proxmox');
+        $vms = $this->di['db']->find('service_proxmox', 'server_id=:server_id', array(':server_id' => $data['id']));
+
         // if there are vms provisioned on this server, throw an exception
         if (!empty($vms)) {
             throw new \Box_Exception('VMs are still provisioned on this server');
         }
+        // delete storages
+        $storages = $this->di['db']->find('service_proxmox_storage', 'server_id=:server_id', array(':server_id' => $data['id']));
+        foreach ($storages as $storage) {
+            $this->di['db']->trash($storage);
+        }
+
         // delete server
         $server = $this->di['db']->getExistingModelById('service_proxmox_server', $data['id'], 'Server not found');
         $this->di['db']->trash($server);
@@ -360,6 +461,17 @@ class Admin extends \Api_Abstract
             $this->di['db']->store($storage);
         }
         $this->di['db']->store($server);
+        $allresources = $service->getAssignedResources($server);
+        // summarzie the fields cpus and maxmem for each vm and store it in the server table
+        $server->cpu_cores_allocated = 0;
+        $server->ram_allocated = 0;
+        foreach ($allresources as $key => $value) {
+            $server->cpu_cores_allocated += $value['cpus'];
+            $server->ram_allocated += $value['maxmem'];
+        }
+        $this->di['db']->store($server);
+
+
         return $hardware_data;
     }
 

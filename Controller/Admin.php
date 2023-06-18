@@ -50,6 +50,10 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         $app->get('/serviceproxmox/server/:id', 'get_server', array('id' => '[0-9]+'), get_class($this));
         $app->get('/serviceproxmox/storage', 'get_storage', null, get_class($this));
         $app->get('/serviceproxmox/storage/:id', 'get_storage', array('id' => '[0-9]+'), get_class($this));
+        $app->get('/serviceproxmox/storageclass', 'get_storage', null, get_class($this));
+        $app->get('/serviceproxmox/storageclass/:id', 'get_storageclass ', array('id' => '[0-9]+'), get_class($this));
+        // fake route for app.js from proxmox
+
         // TODOS:
         // add vm management
         // add vm templates management

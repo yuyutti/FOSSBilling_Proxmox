@@ -53,8 +53,7 @@ trait ProxmoxServer
 	}
 
 
-	/*
-		Find empty slots
+	/* Find best Server
 	*/
 	public function find_empty($product)
 	{
@@ -62,34 +61,48 @@ trait ProxmoxServer
 		$group = $config['group'];
 		$filling = $config['filling'];
 
-		// Retrieve list of active server from this group
-		// Retrieve the number of slots used per server
-		if ($filling == 'least') {
-			$condition = "ORDER BY ratio ASC";
-		} else if ($filling == 'full') {
-			$condition = "ORDER BY ratio DESC";
-		} else {
-			$condition = "";
-		}
+		// retrieve overprovisioning information from extension settings
+		$config = $this->di['mod_config']('Serviceproxmox');
+		$cpu_overprovion_percent = $config['cpu_overprovisioning'];
+		$ram_overprovion_percent = $config['ram_overprovisioning'];
+		$avoid_overprovision = $config['avoid_overprovision'];
 
-		// Retrieve only non-full active servers sorted by filling ratio (DESC for filling the least filled, ASC for filling servers up) - COALESC transforms null cells into zeros for calculations.
-		$sql = "SELECT `server`.id, `server`.group, `server`.active, `server`.slots, COALESCE(`service`.used,0) as used, `server`.slots - COALESCE(`service`.used,0) as free, COALESCE(`service`.used,0) / `server`.slots as ratio
-				FROM `service_proxmox_server` as `server`
-				LEFT JOIN (
-					SELECT COUNT(*) AS used, `service`.server_id
-					FROM `service_proxmox` as `service`
-					LEFT JOIN `client_order` ON `client_order`.service_id=`service`.id AND `client_order`.status = 'active'
-				) as `service` ON `service`.server_id=`server`.id
-				WHERE `server`.slots <> COALESCE(`service`.used,0) AND `server`.active=1 AND `server`.group='" . $group . "'
-				" . $condition . " LIMIT 1";
+		// Retrieve only non-full active servers sorted by ratio.
+		// priority is given to servers with the largest difference between ram and used ram
+		// if avoid_overprovision is set to true, servers with a ratio of >1 are ignored
+		$servers = $this->di['db']->find('service_proxmox_server', ['status' => 'active']);
+		//echo "<script>console.log('Debug Objects: " . json_encode($servers). "' );</script>";
+		$server = null;
+		$server_ratio = 0;
+		// use values from database to calculate ratio and store the server id, cpu and ram usage ratio if it's better than the previous one
+		foreach ($servers as $s) {
+			$cpu_usage = $s['cpu_cores_allocated'];
+			$ram_usage = $s['ram_allocated'];
+			$cpu_cores = $s['cpu_cores'];
+			$ram = $s['ram'];
 
-		$appropriate_server = $this->di['db']->getAll($sql);
-		if (!empty($appropriate_server[0]['id'])) {
-			return $appropriate_server[0]['id'];
-		} else {
-			throw new \Box_Exception('No server found');
-			return false;
+			$cpu_ratio = $cpu_usage / $cpu_cores;
+			$ram_ratio = $ram_usage / $ram;
+
+			// if avoid_overprovision is set to true, servers with a ratio of >1 are ignored
+			if ($avoid_overprovision && ($cpu_ratio > 1 || $ram_ratio > 1)) {
+				continue;
+			}
+			// calculate ratio with overprovisioning
+			$cpu_ratio = $cpu_ratio * (1 + $cpu_overprovion_percent / 100);
+			$ram_ratio = $ram_ratio * (1 + $ram_overprovion_percent / 100);
+			// check current best ratio
+			if ($cpu_ratio + $ram_ratio > $server_ratio) {
+				$server_ratio = $cpu_ratio + $ram_ratio;
+				$server = $s['id'];
+			}
 		}
+		// if no server is found, return null
+		if ($server == null) {
+			return null;
+		}
+		// if a server is found, return the id
+		return $server;
 	}
 
 	/*
@@ -97,12 +110,12 @@ trait ProxmoxServer
 	*/
 	public function find_access($server)
 	{
-		if (!empty($server->ipv6)) {
-			return $server->ipv6;
-		} else if (!empty($server->ipv4)) {
-			return $server->ipv4;
-		} else if (!empty($server->hostname)) {
+		if (!empty($server->hostname)) {
 			return $server->hostname;
+		} else  if (!empty($server->ipv4)) {
+			return $server->ipv4;
+		} else if (!empty($server->ipv6)) {
+			return $server->ipv6;
 		} else {
 			throw new \Box_Exception('No IPv6, IPv4 or Hostname found for server ' . $server->id);
 		}
@@ -133,6 +146,20 @@ trait ProxmoxServer
 		if ($proxmox->login()) {
 			$storage = $proxmox->get("/nodes/" . $server->name . "/storage");
 			return $storage;
+		} else {
+			throw new \Box_Exception("Failed to connect to the server. st");
+		}
+	}
+
+	// function to get all assigned cpu_cores and ram on a server (used to find free resources)
+	public function getAssignedResources($server)
+	{
+		// Retrieve associated server
+		$serveraccess = $this->find_access($server);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		if ($proxmox->login()) {
+			$assigned_resources = $proxmox->get("/nodes/" . $server->name . "/qemu");
+			return $assigned_resources;
 		} else {
 			throw new \Box_Exception("Failed to connect to the server. st");
 		}

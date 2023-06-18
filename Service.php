@@ -35,6 +35,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	}
 	use ProxmoxAuthentication;
 	use ProxmoxServer;
+	use ProxmoxVM;
 
 	public function validateCustomForm(array &$data, array $product)
 	{
@@ -72,7 +73,6 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	public function install()
 	{
 		// execute sql script if needed
-		// TODO: Eventually remove root_password
 		$sql = "
         CREATE TABLE IF NOT EXISTS `service_proxmox_server` (
             `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -84,10 +84,9 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			`mac` varchar(255) DEFAULT NULL,
 			`realm` varchar(255) DEFAULT NULL,
 			`cpu_cores` bigint(20) DEFAULT NULL,
-			`ram` bigint(20) DEFAULT NULL,
-			`ram_used` bigint(20) DEFAULT NULL,
 			`cpu_cores_allocated` bigint(20) DEFAULT NULL,
-			`slots` bigint(20) DEFAULT NULL,
+			`ram` bigint(20) DEFAULT NULL,
+			`ram_allocated` bigint(20) DEFAULT NULL,
 			`root_user` varchar(255) DEFAULT NULL,
             `root_password` varchar(255) DEFAULT NULL,
 			`tokenname` varchar(255) DEFAULT NULL,
@@ -126,6 +125,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         CREATE TABLE IF NOT EXISTS `service_proxmox_users` (
             `id` bigint(20) NOT NULL AUTO_INCREMENT,
 			`client_id` bigint(20) DEFAULT NULL,
+			`server_id` bigint(20) DEFAULT NULL,
 			`admin_tokenname` varchar(255) DEFAULT NULL,
 			`admin_tokenvalue` varchar(255) DEFAULT NULL,
 			`view_tokenname` varchar(255) DEFAULT NULL,
@@ -133,12 +133,14 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             `created_at` varchar(35) DEFAULT NULL,
             `updated_at` varchar(35) DEFAULT NULL,
             PRIMARY KEY (`id`),
-			KEY `client_id_idx` (`client_id`)
+			KEY `client_id_idx` (`client_id`),
+			KEY `server_id_idx` (`server_id`)
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;";
 		$this->di['db']->exec($sql);
 
 		// create table for storage class information
 		$sql = "
+		CREATE TABLE IF NOT EXISTS `service_proxmox_storageclass` (
 			`id` bigint(20) NOT NULL AUTO_INCREMENT,
 			`storageclass` varchar(35) DEFAULT NULL,
 			PRIMARY KEY (`id`)
@@ -167,6 +169,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		return true;
 	}
 
+
 	/**
 	 * Method to uninstall module.
 	 *
@@ -180,6 +183,27 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_storage`");
 		return true;
 	}
+
+	// Create function that runs with cron job hook
+	/*
+	public static function onBeforeAdminCronRun(\Box_Event $event)
+	{
+		 // getting Dependency Injector
+		 $di = $event->getDi();
+
+		 // @note almost in all cases you will need Admin API
+		 $api = $di['api_admin'];
+		 // get all servers from database
+		 // like this $vms = $this->di['db']->findAll('service_proxmox', 'server_id = :server_id', array(':server_id' => $data['id']));
+ 		 $servers = $di['db']->findAll('service_proxmox_server');
+		 // rum getHardwareData, getStorageData and getAssignedResources for each server 
+		 foreach ($servers as $server) {
+			$hardwareData = $api->getHardwareData($server['id']);
+			$storageData = $api->getStorageData($server['id']);
+			$assignedResources = $api->getAssignedResources($server['id']);
+		  }
+	} */
+
 
 	/* ################################################################################################### */
 	/* ###########################################  Orders  ############################################## */
@@ -219,6 +243,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$model->created_at    	= date('Y-m-d H:i:s');
 		$model->updated_at    	= date('Y-m-d H:i:s');
 
+		// Find suitable server and save it to service_proxmox
+		$$model->server_id = $this->find_empty($product);
+		// Retrieve server info
+
 		$this->di['db']->store($model);
 
 		return $model;
@@ -237,17 +265,13 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		//$this->validateOrderData($c);//
 		$client  = $this->di['db']->load('client', $order->client_id);
 		$product = $this->di['db']->load('product', $order->product_id);
-		$service = $this->di['db']->dispense('service_proxmox');
 		if (!$product) {
 			throw new \Box_Exception('Could not activate order because ordered product does not exists');
 		}
 		$product_config = json_decode($product->config, 1);
 
 		// Allocate to an appropriate server id
-		$serverid = $this->find_empty($product);
-
-		// Retrieve server info
-		$server = $this->di['db']->load('service_proxmox_server', $serverid);
+		$server = $this->di['db']->load('service_proxmox_server', $model->server_id);
 
 		// Retrieve or create client unser account in service_proxmox_users
 		$clientuser = $this->di['db']->findOne('service_proxmox_users', 'server_id = ? and client_id = ?', array($server->id, $client->id));
@@ -257,7 +281,9 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 		// Connect to Proxmox API
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		// find client permissions for server
+		$clientuser = $this->di['db']->findOne('service_proxmox_users', 'server_id = ? and client_id = ?', array($server->id, $client->id));
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $clientuser->admin_tokenname, tokensecret: $clientuser->admin_tokenvalue);
 
 		// Create Proxmox VM
 		if ($proxmox->login()) {
@@ -265,16 +291,21 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			//$proxmox->delete("/nodes/".$model->node."/qemu/".$model->vmid);
 			//return var_export($promox, true);
 
-			// Retrieve next VMID available
-			$vmid = $proxmox->get("/cluster/nextid");
-			$nodes = $proxmox->get_node_list();
-			$first_node = $nodes[0];
-			$proxmoxuser_password = $this->di['tools']->generatePassword(10, 4); // Generate password
+			// compile VMID by combining the server id, the client id, and the order id separated by padded zeroes for thee numbers per variable
+			$vmid = $server->id . str_pad($client->id, 3, '0', STR_PAD_LEFT) . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+
+			// check if vmid is already in use
+			$vmid_in_use = $proxmox->get("/nodes/" . $server->node . "/qemu/" . $vmid);
+			if ($vmid_in_use) {
+				$vmid = $vmid . '1';
+			}
+
+			$proxmoxuser_password = $this->di['tools']->generatePassword(16, 4); // Generate password
 
 			// Create VM
 			$clone = '';
 			$container_settings = array();
-			$description = 'Service package ' . $service->id . ' belonging to ' . $client->first_name . ' ' . $client->last_name . ' id: ' . $client->id;
+			$description = 'Service package ' . $model->id . ' belonging to client id: ' . $client->id;
 
 			if ($product_config['clone'] == true) {
 				$clone = '/' . $product_config['cloneid'] . '/clone'; // Define the route for cloning
@@ -285,23 +316,45 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 					'full' => true
 				);
 			} else { // TODO: Fix Container templates 
+				/* postdata= {
+					"vmid":"2001002",
+					"node":"dct-pub-vh01",
+					"name":"vm2001002",
+					"description":"Service package 1 belonging to client id: 1",
+					"storage":"Storage01",
+					"memory":"256",
+					"ostype":"126",
+					"ide2":"none,media=cdrom",
+					"sockets":"1",
+					"cores":"1",
+					"numa":"0",
+					"scsihw":"virtio-scsi-single",
+					"scsi0":"Storage01:10GB,iothread=on",
+					"pool":"fb_client_1",
+					"net":"virtio,bridge=vmbr0,firewall=1"
+					} */
 				if ($product_config['virt'] == 'qemu') {
 					$container_settings = array(
 						'vmid' => $vmid,
-						'name' => $model->username,                 // Hostname to define
+						'name' => 'vm' . $vmid,                 // Hostname to define
+						'node' => $server->name,                // Node to create the VM on
 						'description' => $description,
 						'storage' => $product_config['storage'],
 						'memory' => $product_config['memory'],
-						'ostype' => 'other',
+						'scsihw' => 'virtio-scsi-single',
+						'scsi0' => "Storage01:10",
+						'ostype' => "other",
+						'kvm' => "0",
 						'ide2' => $product_config['cdrom'] . ',media=cdrom',
 						'sockets' => $product_config['cpu'],
 						'cores' => $product_config['cpu'],
-						'ide0' => $product_config['ide0']
+						'numa' => "0",
+						'pool' => 'fb_client_' . $client->id,
 					);
 				} else {
 					$container_settings = array(
 						'vmid' => $vmid,
-						'hostname' => $model->username,             // Hostname to define
+						'hostname' => 'vm' . $vmid,                // Hostname to define
 						'description' => $description,
 						'storage' => $product_config['storage'],
 						'memory' => $product_config['memory'],
@@ -312,70 +365,28 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 					// Storage to do for LXC
 				}
 			}
-
-			// If the VM is properly created
-			if ($proxmox->post("/nodes/" . $first_node . "/" . $product_config['virt'] . $clone, $container_settings)) {
+			//echo "Debug:\n " . json_encode($container_settings) . "\n \n";
+			// If the1 VM is properly created
+			$vmurl = "/nodes/" . $server->name . "/" . $product_config['virt'] . $clone;
+			//echo "Debug:\n " . $vmurl . "\n \n";
+			$vmcreate = $proxmox->post($vmurl, $container_settings);
+			//echo "Debug:\n " . var_dump($vmcreate) . "\n \n";
+			if ($vmcreate) {
 
 				// Start the server
 				sleep(20);
-				$proxmox->post("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
-				$status = $proxmox->get("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
+				$proxmox->post("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
+				$status = $proxmox->get("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
 
 				if (!empty($status)) {
 					sleep(10);
 					// Wait until it has been started
 					while ($status['status'] != 'running') {
-						$proxmox->post("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
+						$proxmox->post("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
 						sleep(10);
-						$status = $proxmox->get("/nodes/" . $first_node . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
+						$status = $proxmox->get("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
 						// Starting twice => error...
 					}
-					// Debug 
-
-					// Retrieve IP
-
-
-					// USER TO BE DONE: not working yet
-
-					/*$user_settings = array(
-						'email' => $client->email,
-						'firstname' => $client->first_name,
-						'lastname' => $client->last_name,
-						//'password' => $proxmoxuser_password		// Not working
-					);
-					
-					// If proxmox user exists, delete it first TODO: NEVER DO THAT.
-					if($proxmox->get("/access/users/".$client->id.'@'.$server->realm)) {
-						//Update user information
-						if(!$proxmox->delete("/access/users/".$client->id.'@'.$server->realm)) {
-							throw new \Box_Exception("Proxmox user exists but could not be deleted");
-						}
-					}
-					
-					// Create a Proxmox user for SSH access and server commands
-					$user_settings['userid'] = $client->id.'@'.$server->realm;
-					if(!$proxmox->post("/access/users", $user_settings)) {
-						throw new \Box_Exception("Proxmox user not created");
-					}
-
-					// Give correct permissions
-					$permission_settings = array(
-						'path' => '/vms/'.$vmid,
-						'roles' => 'Dedicated',
-						'users' => $client->id.'@'.$server->realm
-					);
-					if(!$proxmox->put("/access/acl", $permission_settings)) {
-						throw new Exception("Proxmox permissions not added");
-					}
-					
-					// Update password: not working yet...
-					/*$user_settings = array(
-						'password' => $proxmoxuser_password,
-						'userid' => $client->id.'@'.$server->realm
-					);
-					if(!$proxmox->put("/access/password", $user_settings)) {
-						throw new \Box_Exception("Proxmox user password not updated");
-					}*/
 				} else {
 					throw new \Box_Exception("VMID cannot be found");
 				}
@@ -383,17 +394,16 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 				throw new \Box_Exception("VPS has not been created");
 			}
 		} else {
-			throw new \Box_Exception('Login to Proxmox Host failed', null, 7457);
+			throw new \Box_Exception('Login to Proxmox Host failed with client credentials', null, 7457);
 		}
 
 		// Retrieve VM IP
 
-		$model->server_id 		= $serverid;
+		$model->server_id 		= $model->server_id;
 		$model->updated_at    	= date('Y-m-d H:i:s');
 		$model->vmid			= $vmid;
-		$model->node			= $first_node;
 		$model->password		= $proxmoxuser_password;
-		//$model->ipv4			= $ipv4;      	//How to do that?
+		//$model->ipv4			= $ipv4;      	//How to do that? 
 		//$model->ipv6			= $ipv6;		//How to do that?
 		//$model->hostname		= $hostname;	//How to do that?
 		$this->di['db']->store($model);
@@ -419,269 +429,35 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			'server' 		  => $server,
 		);
 	}
-	/* ################################################################################################### */
-	/* #######################################  VM Management  ########################################### */
-	/* ################################################################################################### */
 
-	/**
-	 * Suspend Proxmox VM
-	 * @param $order
-	 * @return boolean
-	 */
-	public function suspend($order, $model)
+	// function to get novnc_appjs file
+	public function get_novnc_appjs($data)
 	{
-		// Shutdown VM
-		$this->vm_shutdown($order, $model);
-		// need to check that the VM was shutdown
+		// get list of servers
 
-		$model->updated_at = date('Y-m-d H:i:s');
-		$this->di['db']->store($model);
+		$servers = $this->di['db']->find('service_proxmox_server');
+		// select first server
+		$server = $servers['2'];
 
-		return true;
+		$hostname = $server->hostname;
+		// build url
+
+		$url = "https://$hostname:8006/novnc/" . $data; //$data['ver'];
+		// get file using symphony http client
+		// set options
+		$client = $this->getHttpClient()->withOptions([
+			'verify_peer' => false,
+			'verify_host' => false,
+			'timeout' => 60,
+		]);
+		$result = $client->request('GET', $url);
+		//echo "<script>console.log('Debug Objects: " . $result->getContent() . "' );</script>";
+		// return file
+		return $result;
 	}
 
-	/**
-	 * Unsuspend Proxmox VM
-	 * @param $order
-	 * @return boolean
-	 */
-	public function unsuspend($order, $model)
+	public function getHttpClient()
 	{
-		// Power on VM?
-
-		$model->updated_at = date('Y-m-d H:i:s');
-		$this->di['db']->store($model);
-
-		return true;
-	}
-
-	/**
-	 * Cancel Proxmox VM
-	 * @param $order
-	 * @return boolean
-	 */
-	public function cancel($order, $model)
-	{
-		return $this->suspend($order, $model);
-	}
-
-	/**
-	 * Uncancel Proxmox VM
-	 * @param $order
-	 * @return boolean
-	 */
-	public function uncancel($order, $model)
-	{
-		return $this->unsuspend($order, $model);
-	}
-
-	/**
-	 * Delete Proxmox VM
-	 * @param $order
-	 * @return boolean
-	 */
-	public function delete($order, $model)
-	{
-		if (is_object($model)) {
-
-			$product = $this->di['db']->load('product', $order->product_id);
-			$product_config = json_decode($product->config, 1);
-
-			// Retrieve associated server
-			$server = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $model->server_id));
-
-			// Connect to YNH API
-			$serveraccess = $this->find_access($server);
-			$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-
-			if ($proxmox->login()) {
-				$proxmox->post("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/shutdown", array());
-				$status = $proxmox->get("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/current");
-
-				// Wait until the server has been shut down if the server exists
-				if (!empty($status)) {
-					while ($status['status'] != 'stopped') {
-						sleep(10);
-						$proxmox->post("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/shutdown", array());
-						$status = $proxmox->get("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid . "/status/current");
-					}
-				} else {
-					throw new \Box_Exception("VMID cannot be found");
-				}
-				if ($proxmox->delete("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid)) {
-					// Delete Proxmox user if it exists : TO BE DONE
-					/*if($proxmox->get("/access/users/".$client->id.'@'.$server->realm)) {
-						//Update user information
-						if(!$proxmox->delete("/access/users/".$client->id.'@'.$server->realm)) {
-							throw new \Box_Exception("Proxmox user exists but could not be deleted");
-						}
-					}*/
-					return true;
-				} else {
-					throw new \Box_Exception("VM not deleted");
-				}
-			} else {
-				throw new \Box_Exception("Login to Proxmox Host failed");
-			}
-		}
-	}
-
-	/*
-		VM status
-		TO DO : add more infos
-	*/
-	public function vm_info($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $service->server_id));
-
-		// Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		if ($proxmox->get_version()) {
-			$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
-			// VM monitoring?
-
-			$output = array(
-				'status'	=> $status['status']
-			);
-			return $output;
-		} else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
-		}
-	}
-
-	/*
-		Reboot VM
-	*/
-	public function vm_reboot($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $service->server_id));
-
-		// Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		if ($proxmox->login()) {
-			$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/shutdown", array());
-			$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
-
-			// Wait until the VM has been shut down if the VM exists
-			if (!empty($status)) {
-				while ($status['status'] != 'stopped') {
-					sleep(10);
-					$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/shutdown", array());
-					$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
-				}
-			}
-			// Restart
-			if ($proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start", array())) {
-				sleep(10);
-				$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
-				while ($status['status'] != 'running') {
-					$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start", array());
-					sleep(10);
-					$status = $proxmox->get("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/current");
-					// Starting twice => error...
-				}
-				return true;
-			} else {
-				throw new \Box_Exception("Reboot failed");
-			}
-		} else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
-		}
-	}
-
-	/*
-		Start VM
-	*/
-	public function vm_start($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $service->server_id));
-
-		// Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		if ($proxmox->login()) {
-			$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/start", array());
-			return true;
-		} else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
-		}
-	}
-
-	/*
-		Shutdown VM
-	*/
-	public function vm_shutdown($order, $service)
-	{
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $service->server_id));
-
-		// Test if login
-		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		if ($proxmox->login()) {
-			$settings = array(
-				'forceStop' 	=> true
-			);
-
-			$proxmox->post("/nodes/" . $service->node . "/" . $product_config['virt'] . "/" . $service->vmid . "/status/shutdown", $settings);
-			return true;
-		} else {
-			throw new \Box_Exception("Login to Proxmox Host failed.");
-		}
-	}
-
-
-	/*
-		VM iframe for Web CLI
-	*/
-	public function vm_cli($order, $service)
-	{
-
-		$product = $this->di['db']->load('product', $order->product_id);
-		$product_config = json_decode($product->config, 1);
-		$client  = $this->di['db']->load('client', $order->client_id);
-
-		// Retrieve associated server
-		$server = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $service->server_id));
-
-		// Find access route
-		$serveraccess = $this->find_access($server);
-
-		// Setup console type
-		if ($product_config['virt'] == 'qemu') {
-			$console = 'kvm';
-		} else {
-			$console = 'shell';
-		}
-
-		// The user enters the password to see the iframe: TBD
-		//$password = 'test';
-		//$proxmox = new PVE2_API($serveraccess, $client->id, $service->node, $password);
-
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		if ($proxmox->login()) {
-			$proxmox->setCookie();
-			$cli = $console = '<iframe  src="https://' . $serveraccess . ':8006/?console=' . $console . '&novnc=1&vmid=' . $service->vmid . '&node=' . $service->node . '" frameborder="0" scrolling="no" width="100%" height="600px"></iframe>';
-			return $cli;
-		} else {
-			throw new \Box_Exception("Login to Proxmox VM failed.");
-		}
+		return \Symfony\Component\HttpClient\HttpClient::create();
 	}
 }

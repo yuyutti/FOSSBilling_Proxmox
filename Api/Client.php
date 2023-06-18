@@ -36,9 +36,7 @@ class Client extends \Api_Abstract
 
         $data = $arguments[0];
 
-        if (!isset($data['order_id'])) {
-            throw new \Box_Exception('Order ID is required');
-        }
+
         $model = $this->getService()->getServiceproxmoxByOrderId($data['order_id']);
 
         return $this->getService()->customCall($model, $name, $data);
@@ -52,6 +50,48 @@ class Client extends \Api_Abstract
      * 
      * @throws \Box_Exception 
      */
+    public function vm_get($data)
+    {
+        $required = array(
+            'order_id'    => 'Order ID is missing',
+        );
+        $this->di['validator']->checkRequiredParamsForArray($required, $data);
+
+        $order = $this->di['db']->findOne(
+            'client_order',
+            "id=:id",
+            array(':id' => $data['order_id'])
+        );
+        if (!$order) {
+            throw new \Box_Exception('Order not found');
+        }
+
+        $service = $this->di['db']->findOne(
+            'service_proxmox',
+            "order_id=:id",
+            array(':id' => $data['order_id'])
+        );
+        if (!$service) {
+            throw new \Box_Exception('Proxmox service not found');
+        }
+
+        // Retrieve associated 
+        $server  = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $service['server_id']));
+
+        // if a server has been found, output its details, otherwise return an empty array
+        if (!$server) {
+            return array();
+        }
+        $vm_info = $this->getService()->vm_info($order, $service);
+        $output = array(
+            'server'  => $server->hostname,
+            'username'  => 'root',
+            'cli'       => $this->getService()->vm_cli($order, $service),
+            'status'    => $vm_info['status'],
+        );
+        return $output;
+    }
+
     public function server_get($data)
     {
         $required = array(
@@ -77,19 +117,44 @@ class Client extends \Api_Abstract
             throw new \Box_Exception('Proxmox service not found');
         }
 
-        // Retrieve associated server
+        // Retrieve associated 
         $server  = $this->di['db']->findOne('service_proxmox_server', 'id=:id', array(':id' => $service['server_id']));
 
-        $server_info = $this->getService()->vm_info($order, $service);
-
-        $output = array(
-            'hostname'  => $server->hostname,
-            'username'  => 'root',
-            'cli'       => $this->getService()->vm_cli($order, $service),
-            'status'    => $server_info['status'],
-        );
-        return $output;
+        // if a server has been found, output its details, otherwise return an empty array
+        if (!$server) {
+            return array();
+        }
+        return $server;
     }
+
+    // function to return proxmox_service information from order
+    public function get_proxmox_service($data)
+    {
+        $required = array(
+            'order_id'    => 'Order ID is missing',
+        );
+        $this->di['validator']->checkRequiredParamsForArray($required, $data);
+
+        $order = $this->di['db']->findOne(
+            'client_order',
+            "id=:id",
+            array(':id' => $data['order_id'])
+        );
+        if (!$order) {
+            throw new \Box_Exception('Order not found');
+        }
+
+        $service = $this->di['db']->findOne(
+            'service_proxmox',
+            "order_id=:id",
+            array(':id' => $data['order_id'])
+        );
+        if (!$service) {
+            throw new \Box_Exception('Proxmox service not found');
+        }
+        return $service;
+    }
+
 
     /**
      * Reboot vm
@@ -137,5 +202,10 @@ class Client extends \Api_Abstract
         }
 
         return true;
+    }
+    public function novnc_appjs_get($data)
+    {
+        $appjs = $this->getService()->get_novnc_appjs($data);
+        return $appjs;
     }
 }

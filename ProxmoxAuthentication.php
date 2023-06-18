@@ -197,24 +197,38 @@ trait ProxmoxAuthentication
 
 		// Create Token for Client
 		$clientuser->admin_tokenname = 'fb_admin_' . $client->id;
-		$clientuser->admin_tokenvalue = $proxmox->post("/access/users/" . $userid . "/token" . $clientuser->admin_tokenname, array());
+		$clientuser->server_id = $server->id;
+		$admintoken_response = $proxmox->post("/access/users/" . $userid . "/token/" . $clientuser->admin_tokenname, array('comment' => 'fossbilling admin token for client id: ' . $client->id));
+		$clientuser->admin_tokenname = $admintoken_response['full-tokenid'];
+		$clientuser->admin_tokenvalue = $admintoken_response['value'];
 		$clientuser->view_tokenname = 'fb_view_' . $client->id;
-		$clientuser->view_tokenvalue = $proxmox->post("/access/users/" . $userid . "/token" . $clientuser->view_tokenname, array());
+		$viewtoken_response = $proxmox->post("/access/users/" . $userid . "/token/" . $clientuser->view_tokenname, array('comment' => 'fossbilling view token for client id: ' . $client->id));
+		$clientuser->view_tokenname = $viewtoken_response['full-tokenid'];
+		$clientuser->view_tokenvalue = $viewtoken_response['value'];
+
+
 		$this->di['db']->store($clientuser);
 
 		// Check if the client already has a pool and if not create it.
 		$pool = $proxmox->get("/pools/" . $client->id);
 		if (!$pool) {
-			$pool = $proxmox->post("/pools", array('poolid' => $client->id, 'comment' => 'fossbilling pool ' . $client->id));
+			$pool = $proxmox->post("/pools", array('poolid' => 'fb_client_' . $client->id, 'comment' => 'fossbilling pool for client id: ' . $client->id));
 		}
 		// Add permissions for client
 
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMUser', 'propagate' => 1, 'tokens' => $clientuser->view_tokenname));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'tokens' => $clientuser->admin_tokenname));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'tokens', $clientuser->view_tokenname));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens', $clientuser->admin_tokenname));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMUser,PVEVMAdmin,PVEDatastoreAdmin,PVEDatastoreUser', 'propagate' => 1, 'users' => $userid));
+		/* 
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'users' => $userid));
+		 */
+
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMUser,PVEDatastoreUser', 'propagate' => 1, 'tokens' => $clientuser->view_tokenname));
+		//$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'tokens', $clientuser->view_tokenname));
+
+		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMAdmin,PVEDatastoreAdmin', 'propagate' => 1, 'tokens' => $clientuser->admin_tokenname));
+		//$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens', $clientuser->admin_tokenname));
+
+
 	}
 }
