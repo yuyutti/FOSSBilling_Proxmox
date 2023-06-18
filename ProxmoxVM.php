@@ -275,11 +275,7 @@ trait ProxmoxVM
 		$serveraccess = $this->find_access($server);
 
 		// Setup console type
-		if ($product_config['virt'] == 'qemu') {
-			$console = 'kvm';
-		} else {
-			$console = 'shell';
-		}
+		$console = ($product_config['virt'] == 'qemu') ? 'kvm' : 'shell';
 
 		// The user enters the password to see the iframe: TBD
 		//$password = 'test';

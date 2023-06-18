@@ -3,496 +3,367 @@
 {% import "macro_functions.html.twig" as mf %}
 
 {% block meta_title %}
-    {{ 'Proxmox settings'|trans }}
+	{{ 'Proxmox settings'|trans }}
 {% endblock %}
 
 {% set active_menu = 'system' %}
 
 {% block breadcrumbs %}
-    <ul class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a href="{{ '/'|alink }}">
-                <svg class="icon">
-                    <use xlink:href="#home" />
-                </svg>
-            </a>
-        </li>
-        <li class="breadcrumb-item">
-            <a href="{{ 'system'|alink }}">
-                {{ 'Settings'|trans }}
-            </a>
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">
-            {{ 'Proxmox settings'|trans }}
-        </li>
-    </ul>
+	<ul class="breadcrumb">
+		<li class="breadcrumb-item">
+			<a href="{{ '/'|alink }}">
+				<svg class="icon">
+					<use xlink:href="#home"/>
+				</svg>
+			</a>
+		</li>
+		<li class="breadcrumb-item">
+			<a href="{{ 'system'|alink }}">
+				{{ 'Settings'|trans }}
+			</a>
+		</li>
+		<li class="breadcrumb-item active" aria-current="page">
+			{{ 'Proxmox settings'|trans }}
+		</li>
+	</ul>
 {% endblock %}
 
 {% block content %}
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">
-                {{ 'Proxmox settings'|trans }}
-            </h3>
-            <div class="card-actions">
-                <a href="{{ 'extension/settings/proxmox'|alink }}#tab-manage-proxmox" class="btn btn-primary">
-                    <svg class="icon">
-                        <use xlink:href="#edit" />
-                    </svg>
-                    <span>
-                        {{ 'New helpdesk'|trans }}
-                    </span>
-                </a>
-            </div>
-        </div>
+	<div class="card">
+		<div class="card-header">
+			<h3 class="card-title">
+				{{ 'Proxmox settings'|trans }}
+			</h3>
+			<div class="card-actions">
+				{# <a href="{{ 'extension/settings/proxmox'|alink }}#tab-manage-proxmox" class="btn btn-primary">
+					<svg class="icon">
+						<use xlink:href="#edit"/>
+					</svg>
+					<span>
+						{{ 'New helpdesk'|trans }}
+					</span>
+				</a> #}
+			</div>
+		</div>
 
-        {% set params = admin.extension_config_get({ "ext": "mod_serviceproxmox" }) %}
-        <form method="post" action="{{ 'api/admin/extension/config_save'|link }}" class="api-form" data-api-msg="Settings updated">
-            <div class="card-body">
-                <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}" />
-                <input type="hidden" name="ext" value="mod_serviceproxmox" />
+		{% set params = admin.extension_config_get({ "ext": "mod_serviceproxmox" }) %}
+		<form method="post" action="{{ 'api/admin/extension/config_save'|link }}" class="api-form" data-api-msg="Settings updated">
+			<div class="card-body">
+				<input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
+				<input type="hidden" name="ext" value="mod_serviceproxmox"/>
+				<div class="row mb-3">
+					<label class="col-md-3 col-form-label">
+						{{ 'Use API Token Authentication'|trans }}
+					</label>
+					<div class="col-md-6">
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="use_auth_tokens" value="yes" {% if params.use_auth_tokens == 'yes' %} checked {% endif %} required>
+							<label class="form-check-label">Yes</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="use_auth_tokens" value="no" {% if params.use_auth_tokens == 'no' %} checked {% endif %} required>
+							<label class="form-check-label">No</label>
+						</div>
+					</div>
+				</div>
+				<div class="row mb-3">
+					<fieldset>
+						<label class="form-label">
+							Global CPU Overprovisioning
+						</label>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-5">
+							<input class="form-range" type="range" name="cpu_overprovisioning" value="{{ params.cpu_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="cpuOutput.value = this.value+'%';"></div>
+						<div class="col-md-2">
+							<output name="cpuOutput" for="cpu_overprovisioning">
+								{{ params.cpu_overprovisioning|default(0) }}%</output>
+						</div>
+					</div>
+				</fieldset>
+				<fieldset>
+					<label class="form-label">
+						Global RAM Overprovisioning
+					</label>
+					<div class="row mb-3">
+						<div class="col-md-5">
+							<input class="form-range" type="range" name="ram_overprovisioning" value="{{ params.ram_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="ramOutput.value = this.value+'%';"></div>
+						<div class="col-md-2">
+							<output name="ramOutput" for="ram_overprovisioning">
+								{{ params.ram_overprovisioning|default(0) }}%
+							</output>
+						</div>
+					</div>
+				</fieldset>
+				<fieldset>
+					<label class="form-label">
+						Global Storage Overprovisioning
+                    </label>
+					<div class="row mb-3">
+						<div class="col-md-5">
+							<input class="form-range" type="range" name="storage_overprovisioning" value="{{ params.storage_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="storageOutput.value = this.value+'%';"></div>
+						<div class="col-md-2">
+							<output name="storageOutput" for="storage_overprovisioning">
+								{{ params.storage_overprovisioning|default(0) }}%
+							</output>
+						</div>
+					</div>
+				</fieldset>
+				<div class="row mb-3">
+					<label class="col-md-3 col-form-label">
+						{{ 'Avoid Overprovisioning Servers as long as possible'|trans }}
+					</label>
+					<div class="col-md-6">
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="avoid_overprovision" value="yes" {% if params.avoid_overprovision == 'yes' %} checked {% endif %} required>
+							<label class="form-check-label">Yes</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="avoid_overprovision" value="no" {% if params.avoid_overprovision == 'no' %} checked {% endif %} required>
+							<label class="form-check-label">No</label>
+						</div>
+					</div>
+				</div>
                 <div class="row mb-3">
-                    <label class="col-md-3 col-form-label">
-                        {{ 'Use API Token Authentication'|trans }}
-                    </label>
-                    <div class="col-md-6">
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="use_auth_tokens" value="yes" {% if params.use_auth_tokens == 'yes' %} checked{% endif %} required>
-                                <label class="form-check-label">
-                                    Yes
-                                                                                                                                                                                                                    
-                                                                                                                                                                                
-                                                                                                                                            
-                                                                                                        
-                                                                    
-                                </label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="use_auth_tokens" value="no" {% if params.use_auth_tokens == 'no' %} checked{% endif %} required>
-                                    <label class="form-check-label">
-                                        No
-                                                                                                                                                                                                                                            
-                                                                                                                                                                                                    
-                                                                                                                                                            
-                                                                                                                    
-                                                                            
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <fieldset>
-                    <label class="form-label">
-                        Global CPU Overprovisioning Setting
-                                                                                                                                                        
-                                                                                                                        
-                                                                                            
-                                                                    
-                                            
-                    </label>
-                    <div class="row mb-3">
-                        <div class="col-md-5">
-                            <input class="form-range" type="range" name="cpu_overprovisioning" value="{{ params.cpu_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="cpuOutput.value = this.value+'%';"></div>
-                            <div class="col-md-2">
-                                <output name="cpuOutput" for="cpu_overprovisioning">
-                                    {{ params.cpu_overprovisioning|default(0) }}
-                                    %
-                                                                                                                                                                                                                                
-                                                                                                                                                                                    
-                                                                                                                                            
-                                                                                                        
-                                                                    
-                                </output>
-                            </div>
-                        </div>
-                    </fieldset>
+					<label class="col-md-3 col-form-label">
+						{{ 'Prohibit Overprovisioning '|trans }}
+					</label>
+					<div class="col-md-6">
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="no_overprovision" value="yes" {% if params.no_overprovision == 'yes' %} checked {% endif %} required>
+							<label class="form-check-label">Yes</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input" type="radio" name="no_overprovision" value="no" {% if params.no_overprovision == 'no' %} checked {% endif %} required>
+							<label class="form-check-label">No</label>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="card-body border-bottom">
+				<h3 class="card-title">
+					{{ 'Set Settings for Storageclasses'|trans }}</h3>
+			</div>
+			{% set storageclasses = admin.serviceproxmox_storageclass_get_list() %}<div class="table-responsive">
+				<table class="table card-table table-vcenter table-striped text-nowrap">
+					<thead>
+						<tr>
+							<th class="w-1"></th>
+							<th>
+								{{ 'Storages'|trans }}
+							</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						{% set storages_grouped = admin.serviceproxmox_storage_get_list() %}
+						{% for type in storages_grouped %}
+							<div style="padding: 0.25rem 1.5rem">
+								<strong>
+									{{ type.group }}
+									Storages
 
-                    <fieldset>
-                        <label class="form-label">
-                            Global RAM Overprovisioning Setting
-                                                                                                                                                                                
-                                                                                                                                            
-                                                                                                            
-                                                                                
-                                                    
-                        </label>
-                        <div class="row mb-3">
-                            <div class="col-md-5">
-                                <input class="form-range" type="range" name="ram_overprovisioning" value="{{ params.ram_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="ramOutput.value = this.value+'%';"></div>
-                                <div class="col-md-2">
-                                    <output name="ramOutput" for="ram_overprovisioning">
-                                        {{ params.ram_overprovisioning|default(0) }}
-                                        %
-                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                        
-                                                                                                                                                            
-                                                                                                                    
-                                                                            
-                                    </output>
-                                </div>
-                            </div>
-                        </fieldset>
 
-                        <fieldset>
-                            <label class="form-label">
-                                Global Storage Overprovisioning Setting
-                                                                                                                                                                                                        
-                                                                                                                                                                
-                                                                                                                            
-                                                                                            
-                                                            
-                            </label>
-                            <div class="row mb-3">
-                                <div class="col-md-5">
-                                    <input class="form-range" type="range" name="storage_overprovisioning" value="{{ params.storage_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="storageOutput.value = this.value+'%';"></div>
-                                    <div class="col-md-2">
-                                        <output name="storageOutput" for="storage_overprovisioning">
-                                            {{ params.storage_overprovisioning|default(0) }}
-                                            %
-                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                            
-                                                                                                                                                                            
-                                                                                                                                
-                                                                                    
-                                        </output>
-                                    </div>
-                                </div>
-                            </fieldset>
-                            <div class="row mb-3">
-                                <label class="col-md-3 col-form-label">
-                                    {{ 'Avoid Overprovisioning Servers as long as possible'|trans }}
-                                </label>
-                                <div class="col-md-6">
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="avoid_overprovision" value="yes" {% if params.avoid_overprovision == 'yes' %} checked{% endif %} required>
-                                            <label class="form-check-label">
-                                                Yes
-                                                                                                                                                                                        
-                                                                                                                                            
-                                                                                            
-                                            </label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="avoid_overprovision" value="no" {% if params.avoid_overprovision == 'no' %} checked{% endif %} required>
-                                                <label class="form-check-label">
-                                                    No
-                                                                                                                                                                                                        
-                                                                                                                                                        
-                                                                                                    
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
+								</strong>
+							</div>
+							<table class="table card-table table-vcenter table-striped text-nowrap">
+								<thead>
+									<tr>
+										<th>
+											{{ 'Storage' | trans }}
+										</th>
+										<th>
+											{{ 'Servername' | trans }}
+										</th>
+										<th>
+											{{ 'Content' | trans }}
+										</th>
+										<th style="text-align: right;">
+											{{ 'Storage Space' | trans }}
+										</th>
+										<th>
+											{{ 'Active' | trans }}
+										</th>
+										<th class="w-1"></th>
+									</tr>
+								</thead>
 
-                                    <div class="card-body border-bottom">
-                                        <h3 class="card-title">
-                                            {{ 'Set Settings for Storageclasses'|trans }}
-                                        </h3>
-                                    </div>
-                                    {% set storageclasses = admin.serviceproxmox_storageclass_get_list() %}
+								<tbody>
+									{% for storage in type.storages %}
+										<tr>
+											<td>
+												{{ storage.name }}
+											</td>
+											<td>
+												{{ storage.servername }}
+											</td>
+											<!-- split the content of storage.content by colon and put each value on a line -->
+											<td>
+												{% set content = storage.content|split(',') %}
+												{% for line in content %}
+													{{ line }}
+													<br>
+												{% endfor %}
+											</td>
+											<td style="text-align: center; width: 3em;">
+												{{ storage.used }}
+												/
+												{{ storage.size }}
+												GB
+												<div class="progress progress-sm">
+													<div class="progress-bar" style="width: {{ storage.percent_used }}%"></div>
+												</div>
+											</td>
+											{% if storage.active == 1 %}
+												<td>
+													<span class="badge bg-success me-1"></span>
+												</td>
+											{% else %}
+												<td>
+													<span class="badge bg-fail me-1"></span>
+												</td>
+											{% endif %}
 
-                                    <div class="table-responsive">
-                                        <table class="table card-table table-vcenter table-striped text-nowrap">
-                                            <thead>
-                                                <tr>
-                                                    <th class="w-1"></th>
-                                                    <th>
-                                                        {{ 'Storages'|trans }}
-                                                    </th>
-                                                    <th></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% set storages_grouped = admin.serviceproxmox_storage_get_list() %}
-                                                {% for type in storages_grouped %}
-                                                    <div style="padding: 0.25rem 1.5rem">
-                                                        <strong>
-                                                            {{ type.group }}
-                                                            Storages 
-                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                            
-                                                                                                                                                                        
-                                                                                                                    
-                                                        </strong>
-                                                    </div>
-                                                    <table class="table card-table table-vcenter table-striped text-nowrap">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>
-                                                                    {{ 'Storage' | trans }}
-                                                                </th>
-                                                                <th>
-                                                                    {{ 'Servername' | trans }}
-                                                                </th>
-                                                                <th>
-                                                                    {{ 'Content' | trans }}
-                                                                </th>
-                                                                <th style="text-align: right;">
-                                                                    {{ 'Storage Space' | trans }}
-                                                                </th>
-                                                                <th>
-                                                                    {{ 'Active' | trans }}
-                                                                </th>
-                                                                <th class="w-1"></th>
-                                                            </tr>
-                                                        </thead>
+											<td>
+												<a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
+													<svg class="icon">
+														<use xlink:href="#edit"/>
+													</svg>
+												</a>
+											</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						{% endfor %}
+					</tbody>
+				</div>
+				<div class="card-footer text-end">
+					<input type="submit" value="{{ 'Update'|trans }}" class="btn btn-primary"/></div>
+			</div>
+		</form>
+	</div><!-- Modal --><div class="modal fade" id="storageClassesModal" tabindex="-1" aria-labelledby="storageClassesModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="storageClassesModalLabel">
+						Manage Storage Classes
+					</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div
+					class="modal-body">
+					<!-- Storage Classes List -->
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Storage Class</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for storageclass in storageclasses %}
+								<tr>
+									<td>
+										{{ storageclass }}
+									</td>
+									<!-- add edit and delete buttons -->
+									<td>
+										<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEditStorageClassModal" onclick="editStorageClass('{{ storageclass }}')">Edit</button>
+										<button type="button" class="btn btn-danger" onclick="deleteStorageClass('{{ storageclass }}')">Delete</button>
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+						Close
+					</button>
+					<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStorageClassModal">
+						Add Storage Class
+					</button>
+				</div>
+			</div>
+		</div>
+	</div><!-- Button to trigger the modal --><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#storageClassesModal">Manage Storage Classes</button><!-- Add/Edit Storage Class Modal --><div class="modal fade" id="addStorageClassModal" tabindex="-1" aria-labelledby="addStorageClassModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="addStorageClassModalLabel">
+						Add/Edit Storage Class
+					</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<form method="post" action="{{ 'admin/serviceproxmox/storageclass_create' | link }}" class="api-form" data-api-msg="Created new Storageclass">
+						<div class="mb-3">
+							<label for="storageClassName" class="form-label">
+								Storage Class Name
+							</label>
+							<input type="text" class="form-control" name="storageClassName" placeholder="Enter storage class name"></div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+							Cancel
+						</button>
+						<input type="submit" value="{{ 'Add storageclass' | trans }}" class="btn btn-primary"></div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+	var selectedStorageClass = null;
 
-                                                        <tbody>
-                                                            {% for storage in type.storages %}
-                                                                <tr>
-                                                                    <td>
-                                                                        {{ storage.name }}
-                                                                    </td>
-                                                                    <td>
-                                                                        {{ storage.servername }}
-                                                                    </td>
-                                                                    <!-- split the content of storage.content by colon and put each value on a line -->
-                                                                    <td>
-                                                                        {% set content = storage.content|split(',') %}
-                                                                        {% for line in content %}
-                                                                            {{ line }}
-                                                                            <br>
-                                                                            {% endfor %}
-                                                                        </td>
-                                                                        <td style="text-align: center; width: 3em;">
-                                                                            {{ storage.used }}
-                                                                            / 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                            
-                                                                                                                                                        
-                                                                            {{ storage.size }}
-                                                                            GB
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                            
-                                                                                                                                                        
-                                                                            <div class="progress progress-sm">
-                                                                                <div class="progress-bar" style="width: {{ storage.percent_used }}%"></div>
-                                                                            </div>
-                                                                        </td>
-                                                                        {% if storage.active == 1 %}
-                                                                            <td>
-                                                                                <span class="badge bg-success me-1"></span>
-                                                                            </td>
-                                                                        {% else %}
-                                                                            <td>
-                                                                                <span class="badge bg-fail me-1"></span>
-                                                                            </td>
-                                                                        {% endif %}
+function deleteStorageClass() {
+if (selectedStorageClass) {
+// Delete the selected storage class (perform necessary logic here)
+// You can use JavaScript or make an AJAX request to delete the storage class
 
-                                                                        <td>
-                                                                            <a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
-                                                                                <svg class="icon">
-                                                                                    <use xlink:href="#edit" />
-                                                                                </svg>
-                                                                            </a>
-                                                                        </td>
-                                                                    </tr>
-                                                                {% endfor %}
-                                                            </tbody>
-                                                        </table>
-                                                    {% endfor %}
-                                                </div>
-                                                <div class="card-footer text-end">
-                                                    <input type="submit" value="{{ 'Update'|trans }}" class="btn btn-primary" />
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-                                    <!-- Modal -->
-                                    <div class="modal fade" id="storageClassesModal" tabindex="-1" aria-labelledby="storageClassesModalLabel" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="storageClassesModalLabel">
-                                                        Manage Storage Classes
-                                                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                            
-                                                                                                                                                            
-                                                                                                            
-                                                    </h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <!-- Storage Classes List -->
-                                                    <table class="table">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>
-                                                                    Storage Class
-                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                
-                                                                                                                                    
-                                                                </th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {% for storageclass in storageclasses %}
-                                                                <tr>
-                                                                    <td>
-                                                                        {{ storageclass }}
-                                                                    </td>
-                                                                    <!-- add edit and delete buttons -->
-                                                                    <td>
-                                                                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEditStorageClassModal" onclick="editStorageClass('{{ storageclass }}')">
-                                                                            Edit
-                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                        
-                                                                                                                                                    
-                                                                        </button>
-                                                                        <button type="button" class="btn btn-danger" onclick="deleteStorageClass('{{ storageclass }}')">
-                                                                            Delete
-                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                        
-                                                                                                                                                    
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            {% endfor %}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                        Close
-                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                            
-                                                                                                                                                            
-                                                                                                            
-                                                    </button>
-                                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStorageClassModal">
-                                                        Add Storage Class
-                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                            
-                                                                                                                                                            
-                                                                                                            
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Button to trigger the modal -->
-                                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#storageClassesModal">
-                                        Manage Storage Classes
-                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                        
-                                                                                                                                                                                
-                                                                                                                                            
-                                                                                                            
-                                                                            
-                                    </button>
-                                    <!-- Add/Edit Storage Class Modal -->
-                                    <div class="modal fade" id="addStorageClassModal" tabindex="-1" aria-labelledby="addStorageClassModalLabel" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="addStorageClassModalLabel">
-                                                        Add/Edit Storage Class
-                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                            
-                                                                                                                                                            
-                                                                                                            
-                                                    </h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <form method="post" action="{{ 'admin/serviceproxmox/storageclass_create' | link }}" class="api-form" data-api-msg="Created new Storageclass">
-                                                        <div class="mb-3">
-                                                            <label for="storageClassName" class="form-label">
-                                                                Storage Class Name
-                                                                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                            
-                                                                                                                                                                                    
-                                                                                                                            
-                                                            </label>
-                                                            <input type="text" class="form-control" name="storageClassName" placeholder="Enter storage class name"></div>
+// Refresh the list after deletion
+refreshStorageClassesList();
+}
+}
 
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                                Cancel
-                                                                                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                            
-                                                                                                                                                                                    
-                                                                                                                            
-                                                            </button>
-                                                            <input type="submit" value="{{ 'Add storageclass' | trans }}" class="btn btn-primary"></div>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
+function saveStorageClass() {
+var storageClassNameInput = document.getElementById('storageClassName');
+var storageClassName = storageClassNameInput.value;
 
-                                            <script>
-    var selectedStorageClass = null;
+if (selectedStorageClass) {
+// Edit the selected storage class (perform necessary logic here)
+// You can use JavaScript or make an AJAX request to edit the storage class
 
-    function deleteStorageClass() {
-        if (selectedStorageClass) {
-            // Delete the selected storage class (perform necessary logic here)
-            // You can use JavaScript or make an AJAX request to delete the storage class
+// Refresh the list after editing
+refreshStorageClassesList();
+} else {
+// Add a new storage class (perform necessary logic here)
+// You can use JavaScript or make an AJAX request to add the storage class
 
-            // Refresh the list after deletion
-            refreshStorageClassesList();
-        }
-    }
+// Refresh the list after adding
+refreshStorageClassesList();
+}
 
-    function saveStorageClass() {
-        var storageClassNameInput = document.getElementById('storageClassName');
-        var storageClassName = storageClassNameInput.value;
+// Clear the input field and close the modal
+storageClassNameInput.value = '';
+$('#addEditStorageClassModal').modal('hide');
+}
 
-        if (selectedStorageClass) {
-            // Edit the selected storage class (perform necessary logic here)
-            // You can use JavaScript or make an AJAX request to edit the storage class
+function refreshStorageClassesList() {
+// Perform necessary logic to fetch the updated list of storage classes
+// and update the <ul> element within the modal with the updated list
+// You can use JavaScript or make an AJAX request to fetch the list
 
-            // Refresh the list after editing
-            refreshStorageClassesList();
-        } else {
-            // Add a new storage class (perform necessary logic here)
-            // You can use JavaScript or make an AJAX request to add the storage class
+// Example:
+var updatedStorageClasses = ['Storage Class A', 'Storage Class B', 'Storage Class C'];
+var storageClassesList = document.querySelector('#storageClassesModal ul');
 
-            // Refresh the list after adding
-            refreshStorageClassesList();
-        }
-
-        // Clear the input field and close the modal
-        storageClassNameInput.value = '';
-        $('#addEditStorageClassModal').modal('hide');
-    }
-
-    function refreshStorageClassesList() {
-        // Perform necessary logic to fetch the updated list of storage classes
-        // and update the <ul> element within the modal with the updated list
-        // You can use JavaScript or make an AJAX request to fetch the list
-
-        // Example:
-        var updatedStorageClasses = ['Storage Class A', 'Storage Class B', 'Storage Class C'];
-        var storageClassesList = document.querySelector('#storageClassesModal ul');
-
-        storageClassesList.innerHTML = '';
-        updatedStorageClasses.forEach(function (storageclass) {
-            var listItem = document.createElement('li');
-            listItem.className = 'list-group-item';
-            listItem.textContent = storageclass;
-            storageClassesList.appendChild(listItem);
-        });
-    }
-</script>
-                                        {% endblock %}
-                                        
+storageClassesList.innerHTML = '';
+updatedStorageClasses.forEach(function (storageclass) {
+var listItem = document.createElement('li');
+listItem.className = 'list-group-item';
+listItem.textContent = storageclass;
+storageClassesList.appendChild(listItem);
+});
+}
+</script>{% endblock %}
