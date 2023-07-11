@@ -29,143 +29,120 @@
 {% endblock %}
 
 {% block content %}
-	<div class="card">
-		<div class="card-header">
-			<h3 class="card-title">
-				{{ 'Proxmox settings'|trans }}
-			</h3>
-			<div class="card-actions">
-				{# <a href="{{ 'extension/settings/proxmox'|alink }}#tab-manage-proxmox" class="btn btn-primary">
-					<svg class="icon">
-						<use xlink:href="#edit"/>
-					</svg>
-					<span>
-						{{ 'New helpdesk'|trans }}
-					</span>
-				</a> #}
-			</div>
-		</div>
+    <div class="card-tabs">
+		 <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" href="#tab-general" data-bs-toggle="tab">{{ 'General'|trans }}</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" href="#tab-storage" data-bs-toggle="tab">{{ 'Storage'|trans }}</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" href="#tab-backup" data-bs-toggle="tab">{{ 'Backup'|trans }}</a>
+            </li>
+        </ul>
 
-		{% set params = admin.extension_config_get({ "ext": "mod_serviceproxmox" }) %}
-		<form method="post" action="{{ 'api/admin/extension/config_save'|link }}" class="api-form" data-api-msg="Settings updated">
-			<div class="card-body">
-				<input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
-				<input type="hidden" name="ext" value="mod_serviceproxmox"/>
-				<div class="row mb-3">
-					<label class="col-md-3 col-form-label">
-						{{ 'Use API Token Authentication'|trans }}
-					</label>
-					<div class="col-md-6">
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="use_auth_tokens" value="yes" {% if params.use_auth_tokens == 'yes' %} checked {% endif %} required>
-							<label class="form-check-label">Yes</label>
-						</div>
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="use_auth_tokens" value="no" {% if params.use_auth_tokens == 'no' %} checked {% endif %} required>
-							<label class="form-check-label">No</label>
-						</div>
-					</div>
-				</div>
-				<div class="row mb-3">
-					<fieldset>
-						<label class="form-label">
-							Global CPU Overprovisioning
-						</label>
-					</div>
-					<div class="row mb-3">
-						<div class="col-md-5">
-							<input class="form-range" type="range" name="cpu_overprovisioning" value="{{ params.cpu_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="cpuOutput.value = this.value+'%';"></div>
-						<div class="col-md-2">
-							<output name="cpuOutput" for="cpu_overprovisioning">
-								{{ params.cpu_overprovisioning|default(0) }}%</output>
-						</div>
-					</div>
-				</fieldset>
-				<fieldset>
-					<label class="form-label">
-						Global RAM Overprovisioning
-					</label>
-					<div class="row mb-3">
-						<div class="col-md-5">
-							<input class="form-range" type="range" name="ram_overprovisioning" value="{{ params.ram_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="ramOutput.value = this.value+'%';"></div>
-						<div class="col-md-2">
-							<output name="ramOutput" for="ram_overprovisioning">
-								{{ params.ram_overprovisioning|default(0) }}%
-							</output>
-						</div>
-					</div>
-				</fieldset>
-				<fieldset>
-					<label class="form-label">
-						Global Storage Overprovisioning
-                    </label>
-					<div class="row mb-3">
-						<div class="col-md-5">
-							<input class="form-range" type="range" name="storage_overprovisioning" value="{{ params.storage_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="storageOutput.value = this.value+'%';"></div>
-						<div class="col-md-2">
-							<output name="storageOutput" for="storage_overprovisioning">
-								{{ params.storage_overprovisioning|default(0) }}%
-							</output>
-						</div>
-					</div>
-				</fieldset>
-				<div class="row mb-3">
-					<label class="col-md-3 col-form-label">
-						{{ 'Avoid Overprovisioning Servers as long as possible'|trans }}
-					</label>
-					<div class="col-md-6">
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="avoid_overprovision" value="yes" {% if params.avoid_overprovision == 'yes' %} checked {% endif %} required>
-							<label class="form-check-label">Yes</label>
-						</div>
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="avoid_overprovision" value="no" {% if params.avoid_overprovision == 'no' %} checked {% endif %} required>
-							<label class="form-check-label">No</label>
-						</div>
-					</div>
-				</div>
-                <div class="row mb-3">
-					<label class="col-md-3 col-form-label">
-						{{ 'Prohibit Overprovisioning '|trans }}
-					</label>
-					<div class="col-md-6">
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="no_overprovision" value="yes" {% if params.no_overprovision == 'yes' %} checked {% endif %} required>
-							<label class="form-check-label">Yes</label>
-						</div>
-						<div class="form-check form-check-inline">
-							<input class="form-check-input" type="radio" name="no_overprovision" value="no" {% if params.no_overprovision == 'no' %} checked {% endif %} required>
-							<label class="form-check-label">No</label>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="card-body border-bottom">
-				<h3 class="card-title">
-					{{ 'Set Settings for Storageclasses'|trans }}</h3>
-			</div>
-			{% set storageclasses = admin.serviceproxmox_storageclass_get_list() %}<div class="table-responsive">
-				<table class="table card-table table-vcenter table-striped text-nowrap">
-					<thead>
-						<tr>
-							<th class="w-1"></th>
-							<th>
-								{{ 'Storages'|trans }}
-							</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody>
-						{% set storages_grouped = admin.serviceproxmox_storage_get_list() %}
-						{% for type in storages_grouped %}
-							<div style="padding: 0.25rem 1.5rem">
-								<strong>
-									{{ type.group }}
-									Storages
-
-
-								</strong>
+        <div class="card">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tab-general" role="tabpanel">
+					{% set params = admin.extension_config_get({ "ext": "mod_serviceproxmox" }) %}
+					<form method="post" action="{{ 'api/admin/extension/config_save'|link }}" class="api-form" data-api-msg="Settings updated">
+						<input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
+						<input type="hidden" name="ext" value="mod_serviceproxmox"/>
+						<div class="card-body">
+							<div class="mt-3 mb-3 row">
+								<label class="col-md-3 form-label">{{ 'Use API Token Authentication'|trans }}</label>
+								<div class="col-md-6">
+								<div class="form-check form-check-inline">
+									<input class="form-check-input" type="radio" name="use_auth_tokens" value="yes" {% if params.use_auth_tokens == 'yes' %} checked {% endif %} required>
+									<label class="form-check-label">Yes</label>
+								</div>
+								<div class="form-check form-check-inline">
+									<input class="form-check-input" type="radio" name="use_auth_tokens" value="no" {% if params.use_auth_tokens == 'no' %} checked {% endif %} required>
+									<label class="form-check-label">No</label>
+								</div>
+								</div>
 							</div>
+							<div class="mb-3 row">
+								<label class="form-label">
+									Global CPU Overprovisioning
+								</label>
+								<div class="col-md-5">
+									<input class="form-range" type="range" name="cpu_overprovisioning" value="{{ params.cpu_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="cpuOutput.value = this.value+'%';">
+								</div>
+								<div class="col-md-2">
+									<output name="cpuOutput" for="cpu_overprovisioning">
+										{{ params.cpu_overprovisioning|default(0) }}%
+									</output>
+								</div>
+								<label class="form-label">
+									Global RAM Overprovisioning
+								</label>
+								<div class="col-md-5">
+									<input class="form-range" type="range" name="ram_overprovisioning" value="{{ params.ram_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="ramOutput.value = this.value+'%';">
+								</div>
+								<div class="col-md-2">
+									<output name="ramOutput" for="ram_overprovisioning">
+										{{ params.ram_overprovisioning|default(0) }}%
+									</output>
+								</div>
+								<label class="form-label">
+									Global Storage Overprovisioning
+								</label>
+								<div class="col-md-5">
+									<input class="form-range" type="range" name="storage_overprovisioning" value="{{ params.storage_overprovisioning|default(0) }}" min="0" max="200" step="1" oninput="storageOutput.value = this.value+'%';">
+								</div>
+								<div class="col-md-2">
+									<output name="storageOutput" for="storage_overprovisioning">
+										{{ params.storage_overprovisioning|default(0) }}%
+									</output>
+								</div>
+							</div>
+							<div class="row mb-3">
+								<label class="col-md-3 form-label">
+									{{ 'Avoid Overprovisioning Servers as long as possible'|trans }}
+								</label>
+								<div class="col-md-6">
+									<div class="form-check form-check-inline">
+										<input class="form-check-input" type="radio" name="avoid_overprovision" value="yes" {% if params.avoid_overprovision == 'yes' %} checked {% endif %} required>
+										<label class="form-check-label">Yes</label>
+									</div>
+									<div class="form-check form-check-inline">
+										<input class="form-check-input" type="radio" name="avoid_overprovision" value="no" {% if params.avoid_overprovision == 'no' %} checked {% endif %} required>
+										<label class="form-check-label">No</label>
+									</div>
+								</div>
+							</div>
+							<div class="row mb-3">
+								<label class="col-md-3 form-label">
+									{{ 'Prohibit Overprovisioning '|trans }}
+								</label>
+
+								<div class="col-md-6">
+									<div class="form-check form-check-inline">
+										<input class="form-check-input" type="radio" name="no_overprovision" value="yes" {% if params.no_overprovision == 'yes' %} checked {% endif %} required>
+										<label class="form-check-label">Yes</label>
+									</div>
+									<div class="form-check form-check-inline">
+										<input class="form-check-input" type="radio" name="no_overprovision" value="no" {% if params.no_overprovision == 'no' %} checked {% endif %} required>
+										<label class="form-check-label">No</label>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="card-footer text-end">
+							<button type="submit" class="btn btn-primary">{{ 'Update'|trans }}</button>
+						</div>
+					</form>
+				</div>
+	            <div class="tab-pane fade" id="tab-storage" role="tabpanel">
+					{% set storages_grouped = admin.serviceproxmox_storage_get_list() %}
+						{% for type in storages_grouped %}
+						<div class="card-body">
+						<div class="card-title">
+							<strong>{{ type.group }} Storages</strong>
+						</div>
+						<div class="table-responsive">
 							<table class="table card-table table-vcenter table-striped text-nowrap">
 								<thead>
 									<tr>
@@ -184,10 +161,10 @@
 										<th>
 											{{ 'Active' | trans }}
 										</th>
-										<th class="w-1"></th>
+										<th class="w-1">
+										</th>
 									</tr>
 								</thead>
-
 								<tbody>
 									{% for storage in type.storages %}
 										<tr>
@@ -197,33 +174,25 @@
 											<td>
 												{{ storage.servername }}
 											</td>
-											<!-- split the content of storage.content by colon and put each value on a line -->
 											<td>
 												{% set content = storage.content|split(',') %}
 												{% for line in content %}
-													{{ line }}
-													<br>
+													{{ line }} <br>
 												{% endfor %}
 											</td>
 											<td style="text-align: center; width: 3em;">
-												{{ storage.used }}
-												/
-												{{ storage.size }}
-												GB
+												{{ storage.used }} / {{ storage.size }} GB
 												<div class="progress progress-sm">
 													<div class="progress-bar" style="width: {{ storage.percent_used }}%"></div>
 												</div>
 											</td>
+											<td>
 											{% if storage.active == 1 %}
-												<td>
-													<span class="badge bg-success me-1"></span>
-												</td>
+												<span class="badge bg-success me-1"></span>
 											{% else %}
-												<td>
-													<span class="badge bg-fail me-1"></span>
-												</td>
+												<span class="badge bg-fail me-1"></span>
 											{% endif %}
-
+											</td>
 											<td>
 												<a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
 													<svg class="icon">
@@ -235,84 +204,47 @@
 									{% endfor %}
 								</tbody>
 							</table>
-						{% endfor %}
-					</tbody>
-				</div>
-				<div class="card-footer text-end">
-					<input type="submit" value="{{ 'Update'|trans }}" class="btn btn-primary"/></div>
-			</div>
-		</form>
-	</div><!-- Modal --><div class="modal fade" id="storageClassesModal" tabindex="-1" aria-labelledby="storageClassesModalLabel" aria-hidden="true">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="storageClassesModalLabel">
-						Manage Storage Classes
-					</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div
-					class="modal-body">
-					<!-- Storage Classes List -->
-					<table class="table">
-						<thead>
-							<tr>
-								<th>Storage Class</th>
-							</tr>
-						</thead>
-						<tbody>
-							{% for storageclass in storageclasses %}
-								<tr>
-									<td>
-										{{ storageclass }}
-									</td>
-									<!-- add edit and delete buttons -->
-									<td>
-										<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEditStorageClassModal" onclick="editStorageClass('{{ storageclass }}')">Edit</button>
-										<button type="button" class="btn btn-danger" onclick="deleteStorageClass('{{ storageclass }}')">Delete</button>
-									</td>
-								</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-						Close
-					</button>
-					<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStorageClassModal">
-						Add Storage Class
-					</button>
-				</div>
-			</div>
-		</div>
-	</div><!-- Button to trigger the modal --><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#storageClassesModal">Manage Storage Classes</button><!-- Add/Edit Storage Class Modal --><div class="modal fade" id="addStorageClassModal" tabindex="-1" aria-labelledby="addStorageClassModalLabel" aria-hidden="true">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title" id="addStorageClassModalLabel">
-						Add/Edit Storage Class
-					</h5>
-					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-				</div>
-				<div class="modal-body">
-					<form method="post" action="{{ 'admin/serviceproxmox/storageclass_create' | link }}" class="api-form" data-api-msg="Created new Storageclass">
-						<div class="mb-3">
-							<label for="storageClassName" class="form-label">
-								Storage Class Name
-							</label>
-							<input type="text" class="form-control" name="storageClassName" placeholder="Enter storage class name"></div>
+						</div>
 					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-							Cancel
-						</button>
-						<input type="submit" value="{{ 'Add storageclass' | trans }}" class="btn btn-primary"></div>
-				</form>
-			</div>
-		</div>
-	</div>
-</div>
+					{% endfor %}
+				</div>
+				</div>
+                <div class="tab-pane fade" id="tab-backup" role="tabpanel">
+					<form method="post" action="admin/serviceproxmox/proxmox_restore_backup" class="api-form" data-api-redirect="{{ 'serviceproxmox'|alink }}">
+                        <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}">
+                        <div class="card-body">
+                            {% set backups = admin.serviceproxmox_proxmox_list_backups() %}
+							<div class="row mb-3">
+								<label class="col-md-3 form-label">
+									{{ 'Backup auswählen'|trans }}
+								</label>
+								<div class="col-md-6">
+									<select name="backup" class="form-select">
+										{% for backup in backups %}
+											<option value="{{ backup }}">{{ backup }}</option>
+										{% endfor %}
+									</select>
+								</div>
+							</div>
+							<div class="row mb-3">
+							<p>
+								{{ 'The backup will be restored to the backed up state of the server configuration.'|trans }}<br>
+								{{ 'If you have added new vms or containers since the backup, they will be deleted.'|trans }}<br>
+
+								<b>{{ 'All data will be overwritten.'|trans }}</b>
+							</p>
+                        </div>
+                        <div class="card-footer text-end">
+							<button type="submit" class="btn btn-primary" data-api-confirm="{{ 'Are you sure?' | trans }}">{{ 'Restore Backup'|trans }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
 <script>
 	var selectedStorageClass = null;
 

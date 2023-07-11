@@ -15,8 +15,6 @@
 
 namespace Box\Mod\Serviceproxmox\Api;
 
-
-
 /* Manage the Proxmox Hosting Service */
 
 class Admin extends \Api_Abstract
@@ -644,4 +642,45 @@ class Admin extends \Api_Abstract
     /* ################################################################################################### */
     /* ########################################  Permissions  ############################################ */
     /* ################################################################################################### */
+
+   
+    /* ################################################################################################### */
+    /* ########################################  Maintenance  ############################################ */
+    /* ################################################################################################### */
+
+    // Function to trigger config Backup
+    public function proxmox_backup_config($data)
+    {
+        if ($this->getService()->pmxdbbackup($data)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // Function to list backups
+    public function proxmox_list_backups()
+    {
+        $output = $this->getService()->pmxbackuplist();
+        return $output;
+    }
+
+    // Function to restore backup
+    public function proxmox_restore_backup($data)
+    {
+        $this->di['logger']->info('Restoring Proxmox server Backup: %s', $data['backup']);
+        if ($this->getService()->pmxbackuprestore($data)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // function to get installed module version
+    public function get_module_version()
+    {
+        $config = $this->di['mod_config']('Serviceproxmox');
+        return $config['version'];
+    }
+
 } // EOF

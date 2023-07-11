@@ -17,6 +17,13 @@ namespace Box\Mod\Serviceproxmox;
 
 require_once 'pve2_api.class.php';
 
+use PhpZip\Exception\ZipException;
+use PhpZip\ZipFile;
+use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
+use \Model_Extension;
+
 /**
  * Proxmox module for FOSSBilling
  */
@@ -72,7 +79,51 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	 */
 	public function install()
 	{
+		// read manifest.json to get current version number
+		$manifest = json_decode(file_get_contents(__DIR__ . '/manifest.json'), true);
+		$version = $manifest['version'];
+
+		// check if there is a sqldump backup with "uninstall" in it's name in the pmxconfig folder, if so, restore it
+		$filesystem = new Filesystem();
+		// list content of pmxconfig folder using symfony finder
+		$finder = new Finder();
+		$pmxbackup_dir = $finder->in(PATH_ROOT . '/pmxconfig')->files()->name('proxmox_uninstall_*.sql');
+		// find newest file in pmxbackup_dir according to timestamp
+		$pmxbackup_file = array();
+		foreach ($pmxbackup_dir as $file) {
+			$pmxbackup_file[$file->getMTime()] = $file->getFilename();
+		}
+		ksort($pmxbackup_file);
+		$pmxbackup_file = array_reverse($pmxbackup_file);
+		$pmxbackup_file = reset($pmxbackup_file);
+		
+		// if pmxbackup_file is not empty, restore the sql dump to database
+		if (!empty($pmxbackup_file)) {
+			$dump = file_get_contents(PATH_ROOT.'/pmxconfig/'.$pmxbackup_file);
+			// check if dump is not empty
+			if (!empty($dump)) {
+				// check version number in first line of dump
+				$original_dump = $dump;
+				$version_line = strtok($dump, "\n");
+				// get version number from line
+				$dump = str_replace('-- Proxmox module version: ', '', $version_line);	
+				// if version number in dump is smaller than current version number, restore dump and run upgrade function
+				if ($dump < $version) {
+					$this->di['db']->exec($original_dump);
+					$this->upgrade($version); // Runs all migrations between current and next version
+				} elseif ($dump == $version) {
+					$this->di['db']->exec($original_dump);
+				} else {
+					throw new \Box_Exception("The version number of the sql dump is bigger than the current version number of the module. Please check the installed Module version.", null, 9684);
+				}
+				$this->di['db']->exec($dump);
+			}
+		} else 
+		{
+		
+		
 		// execute sql script if needed
+
 		$sql = "
         CREATE TABLE IF NOT EXISTS `service_proxmox_server` (
             `id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -166,6 +217,33 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			UNIQUE KEY `server_storage_unique` (`server_id`, `storage`)
 		) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
 		$this->di['db']->exec($sql);
+
+		// Create table for lxc appliance templates
+		$sql = "
+		CREATE TABLE IF NOT EXISTS `service_proxmox_templates` (
+			`id` bigint(20) NOT NULL AUTO_INCREMENT,
+			`source` varchar(255) DEFAULT NULL,
+			`type` varchar(255) DEFAULT NULL,
+			`package` varchar(255) DEFAULT NULL,
+			`section` varchar(255) DEFAULT NULL,
+			`maintainer` varchar(255) DEFAULT NULL,
+			`location` varchar(255) DEFAULT NULL,
+			`headline` varchar(255) DEFAULT NULL,
+			`os` varchar(255) DEFAULT NULL,
+			`template` varchar(255) DEFAULT NULL,
+			`description` varchar(255) DEFAULT NULL,
+			`architecture` varchar(255) DEFAULT NULL,
+			`md5sum` varchar(255) DEFAULT NULL,
+			`sha512sum` varchar(255) DEFAULT NULL,
+			`version` varchar(255) DEFAULT NULL,
+			`infopage` varchar(255) DEFAULT NULL,
+			
+			PRIMARY KEY (`id`)
+		) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;";
+		$this->di['db']->exec($sql);
+
+		// Create table for vm 
+		}
 		return true;
 	}
 
@@ -177,11 +255,133 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	 */
 	public function uninstall()
 	{
+		$this->pmxdbbackup('uninstall');
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_server`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_users`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_storage`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_templates`");
 		return true;
+	}
+
+
+	// Function to upgrade module Database
+
+	public function upgrade($previous_version)
+	{
+		// read current module version from manifest.json
+		$manifest = json_decode(file_get_contents(__DIR__ . '/manifest.json'), true);
+		$current_version = $manifest['version'];
+
+		// read migrations directory and find all files between current version and previous version
+		$migrations = glob(__DIR__ . '/migrations/*.sql');
+		foreach ($migrations as $migration) {
+			// get version from filename
+			$filename = basename($migration, '.sql');
+			$version = str_replace('_', '.', $filename);
+			// check if version is between previous and current version
+			if (version_compare($version, $previous_version, '>') && version_compare($version, $current_version, '<=')) {
+				// run migration
+				$this->di['db']->exec(file_get_contents($migration));
+			}
+		}
+		return true;
+	}
+
+
+	// Function to create configuration Backups of Proxmox tables
+	public function pmxdbbackup($data)
+	{
+		// create backup of all Proxmox tables
+		try {
+			$filesystem = new Filesystem();
+			$filesystem->mkdir([PATH_ROOT . '/pmxconfig'], 0750);
+		} catch (IOException $e) {
+			error_log($e->getMessage());
+			throw new \Box_Exception('Unable to create directory pmxconfig');
+		}
+		// create filename with timestamp
+		// check if $data is 'uninstall' or 'backup'
+		if ($data == 'uninstall') {
+			$filename = '/pmxconfig/proxmox_uninstall_' . date('Y-m-d_H-i-s') . '.sql';
+		} else {
+			$filename = '/pmxconfig/proxmox_backup_' . date('Y-m-d_H-i-s') . '.sql';
+		}
+
+		$backup_command = 'mysqldump -u ' . $this->di['config']['db']['user'] . ' -p' . $this->di['config']['db']['password'] . ' ' . $this->di['config']['db']['name'] . ' service_proxmox service_proxmox_server service_proxmox_users service_proxmox_storage > ' . PATH_ROOT . $filename;
+		try {
+			exec($backup_command);
+		} catch (Exception $e) {
+			throw new \Box_Exception('Unable to run exec command, please enable exec in php.ini');
+		}
+		// read current module version from manifest.json
+		$manifest = json_decode(file_get_contents(__DIR__ . '/manifest.json'), true);
+		$current_version = $manifest['version'];
+		// add version comment to backup file
+		$version_comment = '-- Proxmox module version: ' . $current_version . "\n";
+		$filename = PATH_ROOT . $filename;
+		$handle = fopen($filename, 'r+');
+		$len = strlen($version_comment);
+		$final_len = filesize($filename) + $len;
+		$cache_old = fread($handle, $len);
+		rewind($handle);
+		$i = 1;
+		while (ftell($handle) < $final_len) {
+			fwrite($handle, $version_comment);
+			$version_comment = $cache_old;
+			$cache_old = fread($handle, $len);
+			fseek($handle, $i * $len);
+			$i++;
+		}
+		fclose($handle);
+
+		return true;
+	}
+
+	// Function to list all Proxmox backups
+	public function pmxbackuplist()
+	{
+		$files = glob(PATH_ROOT . '/pmxconfig/*.sql');
+		$backups = array();
+		foreach ($files as $file) {
+			$backups[] = basename($file);
+		}
+		return $backups;
+	}
+
+	// function to restore Proxmox tables from backup
+	public function pmxbackuprestore($data)
+	{
+		// get filename from $data and see if it exists using finder
+		$manifest = json_decode(file_get_contents(__DIR__ . '/manifest.json'), true);
+		$version = $manifest['version'];
+		//if the file exists, restore it
+		$dump = file_get_contents(PATH_ROOT.'/pmxconfig/'.$data['backup']);
+		// check if dump is not empty
+		if (!empty($dump)) {
+			// check version number in first line of dump format: 
+			// -- Proxmox module version: 0.0.5
+			// get first line of dump
+			$version_line = strtok($dump, "\n");
+			// get version number from line
+			$dump = str_replace('-- Proxmox module version: ', '', $version_line);
+
+
+			// if version number in dump is smaller than current version number, restore dump and run upgrade function
+			if ($dump == $version) {
+				$dump_command = 'mysql -u ' . $this->di['config']['db']['user'] . ' -p' . $this->di['config']['db']['password'] . ' ' . $this->di['config']['db']['name'] . ' < ' . PATH_ROOT . '/pmxconfig/' . $data['backup'];
+				try {
+					exec($dump_command);
+				} catch (Exception $e) {
+					throw new \Box_Exception('Unable to run exec command, please enable exec in php.ini');
+				}
+				return true;
+			} else {
+				throw new \Box_Exception("The sql dump file (V: $dump is not compatible with the current module version (V: $version). Please check the file.", null);
+			}
+		} else {
+			throw new \Box_Exception("The sql dump file is empty. Please check the file.", null);
+		}
 	}
 
 	// Create function that runs with cron job hook

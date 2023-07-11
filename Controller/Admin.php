@@ -47,6 +47,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
     public function register(\Box_App &$app)
     {
         $app->get('/serviceproxmox', 'get_index', null, get_class($this));
+        $app->get('/serviceproxmox/maintenance/backup', 'start_backup', null, get_class($this));
         $app->get('/serviceproxmox/server/:id', 'get_server', array('id' => '[0-9]+'), get_class($this));
         $app->get('/serviceproxmox/storage', 'get_storage', null, get_class($this));
         $app->get('/serviceproxmox/storage/:id', 'get_storage', array('id' => '[0-9]+'), get_class($this));
@@ -80,4 +81,13 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         $storage = $api->Serviceproxmox_storage_get(array('storage_id' => $id));
         return $app->render('mod_serviceproxmox_storage', array('storage' => $storage));
     }
+
+    // Function to start backup via API
+    public function start_backup(\Box_App $app)
+    {
+        $api = $this->di['api_admin'];
+        $backup = $api->Serviceproxmox_proxmox_backup_config('backup');
+        return $app->redirect('extension/settings/serviceproxmox');
+    }
+
 }
