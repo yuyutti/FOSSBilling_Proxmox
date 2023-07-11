@@ -43,6 +43,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	use ProxmoxAuthentication;
 	use ProxmoxServer;
 	use ProxmoxVM;
+	use ProxmoxTemplates;
+
 
 	public function validateCustomForm(array &$data, array $product)
 	{

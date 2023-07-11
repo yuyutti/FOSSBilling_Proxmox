@@ -9,12 +9,7 @@
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
             <a class="nav-link active" href="#tab-index" data-bs-toggle="tab">
-                {{ 'Proxmox servers' | trans }}
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link" href="#tab-storage" data-bs-toggle="tab">
-                {{ 'Proxmox Storage' | trans }}
+                {{ 'Server list' | trans }}
             </a>
         </li>
         <li class="nav-item" role="presentation">
@@ -25,15 +20,51 @@
                 {{ 'New server' | trans }}
             </a>
         </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-storage" data-bs-toggle="tab">
+                {{ 'Storage' | trans }}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-services" data-bs-toggle="tab">
+                {{ 'Provisioned Services' | trans }}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-vmtemplate" data-bs-toggle="tab">
+                {{ 'VM Templates' | trans }}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-new-vmtemplate" data-bs-toggle="tab">
+                <svg class="icon me-2">
+                    <use xlink:href="#plus" />
+                </svg>
+                {{ 'New VM Template' | trans }}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-lxctemplate" data-bs-toggle="tab">
+                {{ 'LXC Templates' | trans }}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-new-lxctemplate" data-bs-toggle="tab">
+                <svg class="icon me-2">
+                    <use xlink:href="#plus" />
+                </svg>
+                {{ 'New LXC Template' | trans }}
+            </a>
+        </li>
     </ul>
 
     <div class="card">
         <div class="tab-content">
             <div class="tab-pane fade show active" id="tab-index" role="tabpanel">
                 <div class="card-body">
-                    <h5>
-                        {{ 'Servers' | trans }}
-                    </h5>
+                    <h2>
+                        {{ 'Proxmox Servers' | trans }}
+                    </h2>
                 </div>
 
                 {% set servers_grouped = admin.serviceproxmox_server_get_list() %}
@@ -274,9 +305,9 @@
                                                 <div class="tab-content">
                                                     <div class="tab-pane fade show" id="tab-storage" role="tabpanel">
                                                         <div class="card-body">
-                                                            <h5>
-                                                                {{ 'Storage list' | trans }}
-                                                            </h5>
+                                                            <h2>
+                                                                {{ 'Proxmox Storage list' | trans }}
+                                                            </h2>
                                                         </div>
 
                                                         {% set storages_grouped = admin.serviceproxmox_storage_get_list() %}
@@ -366,9 +397,9 @@
                                                     <div class="tab-content">
                                                         <div class="tab-pane fade show" id="tab-services" role="tabpanel">
                                                             <div class="card-body">
-                                                                <h5>
+                                                                <h2>
                                                                     {{ 'Servicelist' | trans }}
-                                                                </h5>
+                                                                </h2>
                                                             </div>
 
                                                             {% set services = admin.serviceproxmox_service_proxmox_get_list() %}
@@ -452,7 +483,83 @@
                                                                 {% endfor %}
                                                             </div>
                                                         </div>
-
+                                                        <div class="tab-content">
+                                                            <div class="tab-pane fade show" id="tab-vmtemplates" role="tabpanel">
+                                                                <div class="card-body">
+                                                                    <h2>
+                                                                        {{ 'VM Templates' | trans }}
+                                                                    </h2>
+                                                                </div>
+    
+                                                                {% set vmtemplates = admin.serviceproxmox_service_get_vmtemplates() %}
+                                                                
+                                                                    <div style="padding: 0.25rem 1.5rem">
+                                                                        <strong>
+                                                                            All VM Templates 
+                                                                                                                                                
+                                                                        </strong>
+                                                                    </div>
+                                                                    <table class="table card-table table-vcenter table-striped text-nowrap">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>
+                                                                                    {{ 'Name' | trans }}
+                                                                                </th>
+                                                                                <th>
+                                                                                    {{ 'Description' | trans }}
+                                                                                </th>
+                                                                                <th>
+                                                                                    {{ 'CPU Cores' | trans }}
+                                                                                </th>
+                                                                                <th>
+                                                                                    {{ 'Memory' | trans }}
+                                                                                </th>
+                                                                                <th>
+                                                                                    {{ 'Storage' | trans }}
+                                                                                </th>
+                                                                                <th>
+                                                                                    {{ 'Created at' | trans }}
+                                                                                </th>
+                                                                                <th class="w-1"></th>
+                                                                            </tr>
+                                                                        </thead>
+    
+                                                                        <tbody>
+                                                                            {% for template in vmtemplates %}
+                                                                                <tr>
+                                                                                    <td>
+                                                                                        {{ template.name }}
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        {{ template.cores }}
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        {{ template.memory }}
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        {# {% set content = template.storage|split('\n') %}
+                                                                                        {% for line in content %}
+                                                                                            {{ line }}
+                                                                                            <br>
+                                                                                            {% endfor %} #}
+                                                                                    </td>
+                                                                                    <td>
+                                                                                        {{ template.description }}
+                                                                                    </td>
+                                                                                   
+                                                                                        <td>
+                                                                                            <a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
+                                                                                                <svg class="icon">
+                                                                                                    <use xlink:href="#edit" />
+                                                                                                </svg>
+                                                                                            </a>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                {% endfor %}
+                                                                            </tbody>
+                                                                        </table>
+                                                                </div>
+                                                            </div>
                                                     </div>
                                                 {% endblock %}
                                                 

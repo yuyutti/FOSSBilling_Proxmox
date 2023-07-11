@@ -37,7 +37,7 @@ Based on [previous work](https://github.com/scith/BoxBilling_Proxmox) by [Scith]
 - Copy the "Serviceproxmox" folder in *modules*
 - Configure the Proxmox module in the FOSSBilling admin area
 - Add new Proxmox servers
-- "Prepare Server" on each Proxmox server (this will create the necessary API user and role)
+- "Prepare Server" on each Proxmox server (this will create the necessary API user and role) (The Plus Button in the Server List)
 - Add new Proxmox products with the correct VM settings setup
 
 

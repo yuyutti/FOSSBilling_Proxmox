@@ -645,6 +645,12 @@ class Admin extends \Api_Abstract
     /* ####################################  Resource Management  ######################################## */
     /* ################################################################################################### */
 
+    // service_get_vmtemplates function to retrieve list of vm templates
+    public function service_get_vmtemplates()
+    {
+        $output = $this->getService()->get_vmtemplates();
+        return $output;
+    }
 
     /* ################################################################################################### */
     /* ########################################  Permissions  ############################################ */
