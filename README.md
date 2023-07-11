@@ -17,15 +17,17 @@ Based on [previous work](https://github.com/scith/BoxBilling_Proxmox) by [Scith]
 - Provision QEMU KVM machines (tested, but needs very specific product setup)
 - Clients can start, shutdown and reboot their VMs (online console not working right now)
 - Proxmox Servers do not have to be reachable from the Internet (only the FOSSBilling server needs to be able to reach the Proxmox server)
+- Rudimentary Backup of Module Data (Module data is not lost anymore after reinstalling.)
+
 
 ## TODOs:
-- Prevent disaster by "just" deleting x,y,z
 - Better Error Handling when creating unexpected things happen & get returned from pve host.
 - Better VM Allocation procedure
 - Consistent Naming: Server => Proxmox Virtual Environment Server | VM => Virtual Machine
 - VM & LXC Template setup need to be fixed and simplified
 - Provisioning of VMs with Cloudinit (https://pve.proxmox.com/wiki/Cloud-Init_Support)
 - Work on Usability to configure products and manage customer's products
+
 
 ## Requirements
 - Tested on Proxmox VE 7 or higher, PVE 6 should work too
@@ -43,7 +45,9 @@ Based on [previous work](https://github.com/scith/BoxBilling_Proxmox) by [Scith]
 ![Storageoverview](https://github.com/Anuril/Proxmox/assets/1939311/139d7d32-3fe3-45b3-b0cd-e2e7e6f5af0e)
 
 ## (New) Settings
-![Settings](https://github.com/Anuril/Proxmox/assets/1939311/f6f4bfe6-071b-4a91-9027-6f6dbf2dfb06)
+![Admin_General](https://github.com/Anuril/Proxmox/assets/1939311/42a3492b-9df7-48d8-a1c3-98e6ed698758)
+![Backup](https://github.com/Anuril/Proxmox/assets/1939311/31d4c1a6-3e46-49cf-935c-af65b0582d2a)
+![Storages](https://github.com/Anuril/Proxmox/assets/1939311/08a994ca-d38b-4cbb-ac01-eb9a3fa582fa)
 
 
 ## Licensing
