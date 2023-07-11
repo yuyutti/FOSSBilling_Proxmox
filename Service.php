@@ -171,6 +171,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_config_template`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_storage_template`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_network_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_storageclass`");
 		return true;
 	}
 
@@ -210,6 +212,27 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		return true;
 	}
 
+	public function check_db_migration()
+	{
+		// read current module version from manifest.json
+		$manifest = json_decode(file_get_contents(__DIR__ . '/manifest.json'), true);
+		$current_version = $manifest['version'];
+		// read each table's version from database
+		// SELECT table_comment FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='fossbilling_yn9ovw' AND table_name='service_proxmox';
+		$tables = ['service_proxmox', 'service_proxmox_server', 'service_proxmox_users', 'service_proxmox_storage', 'service_proxmox_templates', 'service_proxmox_vms', 'service_proxmox_vm_config_template', 'service_proxmox_vm_storage_template', 'service_proxmox_vm_network_template', 'service_proxmox_lxc_template', 'service_proxmox_storageclass'];
+		foreach ($tables as $table) {
+			$sql = "SELECT table_comment FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='" . DB_NAME . "' AND table_name='" . $table . "'";
+			$result = $this->di['db']->query($sql);
+			$row = $result->fetch();
+			// check if version is the same as current version
+			if ($row['table_comment'] != $current_version) {
+				// if not, throw error to inform user about inconsistent database status
+				throw new \Box_Exception('Database migration is not up to date. Please run the database migration script.');
+			}
+			
+		}
+		return true;
+	}
 
 	// Function to create configuration Backups of Proxmox tables
 	public function pmxdbbackup($data)
