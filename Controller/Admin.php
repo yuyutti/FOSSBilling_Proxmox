@@ -70,6 +70,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
 
     public function get_server(\Box_App $app, $id)
     {
+        $this->di['is_admin_logged'];
         $api = $this->di['api_admin'];
         $server = $api->Serviceproxmox_server_get(array('server_id' => $id));
         return $app->render('mod_serviceproxmox_server', array('server' => $server));
@@ -77,6 +78,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
 
     public function get_storage(\Box_App $app, $id)
     {
+        $this->di['is_admin_logged'];
         $api = $this->di['api_admin'];
         $storage = $api->Serviceproxmox_storage_get(array('storage_id' => $id));
         return $app->render('mod_serviceproxmox_storage', array('storage' => $storage));
@@ -85,6 +87,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
     // Function to start backup via API
     public function start_backup(\Box_App $app)
     {
+        $this->di['is_admin_logged'];
         $api = $this->di['api_admin'];
         $backup = $api->Serviceproxmox_proxmox_backup_config('backup');
         return $app->redirect('extension/settings/serviceproxmox');

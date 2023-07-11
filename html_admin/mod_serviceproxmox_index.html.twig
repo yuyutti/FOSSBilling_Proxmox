@@ -123,12 +123,12 @@
                                                                                 
                                         {{ server.ram }}
                                         GB)
-                                                                            
+                                        <div style="margin-top: 5px;"></div>
+                                        <div class="progress progress-sm">
+                                            <div class="progress-bar" style="width: {{ server.ram_percent }}%; padding-top: 5px;"></div>
+                                        </div>
                                     </td>
-                                    <div style="margin-top: 5px;"></div>
-                                    <div class="progress progress-sm">
-                                        <div class="progress-bar" style="width: {{ server.ram_percent }}%"></div>
-                                    </div>
+
                                 </td>
                                 {% if server.active == 1 %}
                                     <td style="text-align: center;">
@@ -140,22 +140,12 @@
                                     </td>
                                 {% endif %}
                                 <td>
-                                    <a class="btn btn-icon" href="https://{{ server.access }}:{{server.port}}" target="_blank">
-                                        <svg class="icon">
-                                            <use xlink:href="#settings" />
-                                        </svg>
-                                    </a>
                                     <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/server_test_connection'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Test connection' | trans }}" data-api-msg="{{ 'Server connected' | trans }}">
                                         <svg class="icon">
                                             <use xlink:href="#wifi" />
                                         </svg>
                                     </a>
                                     <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/server_prepare_pve_setup'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Prepare Server' | trans }}" data-api-msg="{{ 'Server prepared' | trans }}">
-                                        <svg class="icon">
-                                            <use xlink:href="#wifi" />
-                                        </svg>
-                                    </a>
-                                    <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/test_access'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Create User' | trans }}" data-api-msg="{{ 'User created' | trans }}">
                                         <svg class="icon">
                                             <use xlink:href="#plus" />
                                         </svg>
@@ -190,45 +180,35 @@
                     <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}" />
                     <div class="mb-3 row">
                         <label class="form-label col-3 col-form-label">
-                            {{ 'Name' | trans }}
-                            :
-                                                    
+                            {{ 'Name' | trans }}:    
                         </label>
                         <div class="col">
                             <input class="form-control" type="text" name="name" value="" required placeholder="{{ 'Unique name to identify this server' | trans }}"></div>
                         </div>
                         <div class="mb-3 row">
                             <label class="form-label col-3 col-form-label">
-                                {{ 'Group' | trans }}
-                                :
-                                                            
+                                {{ 'Group' | trans }}:
                             </label>
                             <div class="col">
                                 <input class="form-control" type="text" name="group" value="" required placeholder="{{ 'Server group' | trans }}"></div>
                             </div>
                             <div class="mb-3 row">
                                 <label class="form-label col-3 col-form-label">
-                                    {{ 'Hostname' | trans }}
-                                    :
-                                                                    
+                                    {{ 'Hostname' | trans }}:                                                                    
                                 </label>
                                 <div class="col">
                                     <input class="form-control" type="text" name="hostname" value="" required placeholder="{{ 'server1.yourserverdomain.com' | trans }}"></div>
                                 </div>
                                 <div class="mb-3 row">
                                     <label class="form-label col-3 col-form-label">
-                                        {{ 'IPv4 address' | trans }}
-                                        :
-                                                                            
+                                        {{ 'IPv4 address' | trans }}:                                                                            
                                     </label>
                                     <div class="col">
                                         <input class="form-control" type="text" name="ipv4" value="" required placeholder="{{ 'Primary IPv4 address of the server' | trans }}"></div>
                                     </div>
                                     <div class="mb-3 row">
                                         <label class="form-label col-3 col-form-label">
-                                            {{ 'IPv6 address' | trans }}
-                                            :
-                                                                                    
+                                            {{ 'IPv6 address' | trans }}:                                                                                    
                                         </label>
                                         <div class="col">
                                             <input class="form-control" type="text" name="ipv6" value="" placeholder="{{ 'Primary IPv6 address of the server' | trans }}"></div>
