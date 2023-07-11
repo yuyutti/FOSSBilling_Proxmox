@@ -174,12 +174,24 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 		// read migrations directory and find all files between current version and previous version
 		$migrations = glob(__DIR__ . '/migrations/*.sql');
+
+		// sort migrations by version number (Filenames: 0.0.1.sql, 0.0.2.sql etc.)
+		usort($migrations, function ($a, $b) {
+			return version_compare(basename($a, '.sql'), basename($b, '.sql'));
+		});
+
 		foreach ($migrations as $migration) {
 			// get version from filename
+			// log to debug.log
+			error_log('found migration: ' . $migration );
 			$filename = basename($migration, '.sql');
 			$version = str_replace('_', '.', $filename);
 			// check if version is between previous and current version
-			if (version_compare($version, $previous_version, '>') && version_compare($version, $current_version, '<=')) {
+			error_log('version: ' . $version . ' previous_version: ' . $previous_version . ' current_version: ' . $current_version);
+			// Apply migration if version is smaller than previous version and smaller or equal to current version
+			error_log('version_compare: ' . version_compare($version, $previous_version, '>') . ' version_compare2: ' . version_compare($version, $current_version, '<='));
+			if (version_compare($version, $previous_version, '>=') && version_compare($version, $current_version, '<=')) {
+				error_log('applying migration: ' . $migration );
 				// run migration
 				$this->di['db']->exec(file_get_contents($migration));
 			}
