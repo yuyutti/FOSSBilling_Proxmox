@@ -244,6 +244,7 @@ class Admin extends \Api_Abstract
             'name'              => 'Server name is missing',
             'ipv4'              => 'Server ipv4 is missing',
             'hostname'          => 'Server hostname is missing',
+            'port'              => 'Server port is missing',
             'root_user'         => 'Root user is missing',
             'root_password'     => 'Root password is missing',
             'realm'             => 'Proxmox user realm is missing',
@@ -256,6 +257,7 @@ class Admin extends \Api_Abstract
         $server->ipv4               = $data['ipv4'];
         $server->ipv6               = $data['ipv6'];
         $server->hostname           = $data['hostname'];
+        $server->port               = $data['port'];
         $server->realm              = $data['realm'];
         $server->root_user          = $data['root_user'];
         $server->root_password      = $data['root_password'];
@@ -327,6 +329,8 @@ class Admin extends \Api_Abstract
         $required = array(
             'name'    => 'Server name is missing',
             'root_user'      => 'Root user is missing',
+            'hostname'      => 'Server hostname is missing',
+            'port'      => 'Server port is missing',
             'realm'      => 'Proxmox user realm is missing',
         );
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
@@ -338,6 +342,7 @@ class Admin extends \Api_Abstract
         $server->ipv4             = $data['ipv4'];
         $server->ipv6             = $data['ipv6'];
         $server->hostname         = $data['hostname'];
+        $server->port             = $data['port'];
         $server->realm            = $data['realm'];
         $server->cpu_cores        = $data['cpu_cores'];
         $server->ram              = $data['ram'];

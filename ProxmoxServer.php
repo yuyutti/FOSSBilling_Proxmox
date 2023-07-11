@@ -32,7 +32,7 @@ trait ProxmoxServer
 	{
 		// Test if login
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		// check if tokenname and tokenvalue contain values by checking their content
 		if (empty($server->tokenname) || empty($server->tokenvalue)) {
 			if (!empty($server->root_user) && !empty($server->root_password)) {
@@ -128,7 +128,7 @@ trait ProxmoxServer
 	{
 		// Retrieve associated server
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 
 		if ($proxmox->login()) {
 			$hardware = $proxmox->get("/nodes/" . $server->name . "/status");
@@ -142,7 +142,7 @@ trait ProxmoxServer
 	{
 		// Retrieve associated server
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->login()) {
 			$storage = $proxmox->get("/nodes/" . $server->name . "/storage");
 			return $storage;
@@ -156,7 +156,7 @@ trait ProxmoxServer
 	{
 		// Retrieve associated server
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if ($proxmox->login()) {
 			$assigned_resources = $proxmox->get("/nodes/" . $server->name . "/qemu");
 			return $assigned_resources;

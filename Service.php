@@ -143,6 +143,13 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		
 		// Create table for vm 
 		}
+		// add default values to module config table:
+		// cpu_overprovisioning, ram_overprovisioning, storage_overprovisioning, avoid_overprovision, no_overprovision, use_auth_tokens
+		// example: $extensionService->setConfig(['ext' => 'mod_massmailer', 'limit' => '2', 'interval' => '10', 'test_client_id' => 1]);
+		$extensionService = $this->di['mod_service']('extension');
+		$extensionService->setConfig(['ext' => 'mod_serviceproxmox', 'cpu_overprovisioning' => '1', 'ram_overprovisioning' => '1', 'storage_overprovisioning' => '1', 'avoid_overprovision' => '0', 'no_overprovision' => '1', 'use_auth_tokens' => '1']);
+		
+
 		return true;
 	}
 
@@ -160,6 +167,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_users`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_storage`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_templates`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vms`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_config_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_storage_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_network_template`");
 		return true;
 	}
 
@@ -394,7 +405,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$serveraccess = $this->find_access($server);
 		// find client permissions for server
 		$clientuser = $this->di['db']->findOne('service_proxmox_users', 'server_id = ? and client_id = ?', array($server->id, $client->id));
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $clientuser->admin_tokenname, tokensecret: $clientuser->admin_tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $clientuser->admin_tokenname, tokensecret: $clientuser->admin_tokenvalue);
 
 		// Create Proxmox VM
 		if ($proxmox->login()) {

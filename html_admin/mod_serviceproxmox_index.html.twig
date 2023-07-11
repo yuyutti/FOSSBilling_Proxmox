@@ -89,8 +89,8 @@
                                         {{ server.name }}
                                     </td>
                                     <td>
-                                        <a href="https://{{ server.access }}:8006" target="_blank">
-                                            {{ server.hostname }}
+                                        <a href="https://{{ server.access }}:{{server.port}}" target="_blank">
+                                            {{ server.hostname }}:{{server.port}}
                                         </a>
                                     </td>
                                     <td>
@@ -140,7 +140,7 @@
                                     </td>
                                 {% endif %}
                                 <td>
-                                    <a class="btn btn-icon" href="https://{{ server.access }}:8006" target="_blank">
+                                    <a class="btn btn-icon" href="https://{{ server.access }}:{{server.port}}" target="_blank">
                                         <svg class="icon">
                                             <use xlink:href="#settings" />
                                         </svg>

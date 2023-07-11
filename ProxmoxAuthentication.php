@@ -33,7 +33,7 @@ trait ProxmoxAuthentication
 	{
 
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. ");
 		}
@@ -155,7 +155,7 @@ trait ProxmoxAuthentication
 	public function test_access($server)
 	{
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. testpmx");
 		}
@@ -187,7 +187,7 @@ trait ProxmoxAuthentication
 		$clientuser->client_id = $client->id;
 		$this->di['db']->store($clientuser);
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. create_client_user");
 		}
