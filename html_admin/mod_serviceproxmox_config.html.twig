@@ -1,209 +1,139 @@
 <form method="post" action="admin/serviceproxmox/product_update" class="mainForm api-form save" data-api-msg="Settings updated">
     <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}" />
-    <fieldset>
-        <div class="help">
-            <h5>
-                {{ 'Stock control settings' | trans }}
-            </h5>
-        </div>
-
-        <div class="rowElem noborder">
-            <label>
-                {{ 'Show stock' | trans }}
-                :
-                            
+    <input type="hidden" name="id" value="{{ product.id }}" />
+    <div class="card-body">
+        <h2>
+            {{ 'General Settings' | trans }}
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="mb-3 row">
+            <label class="form-label col-3">
+                {{ 'Show Stock' | trans }}:
             </label>
-            <div class="formRight">
-                <input type="radio" name="show_stock" value="1" {% if product.config.show_stock %} checked="checked" {% endif %} />
-                <label>
-                    Yes
-                                    
-                </label>
-                <input type="radio" name="show_stock" value="0" {% if not product.config.show_stock %} checked="checked" {% endif %} />
-                <label>
-                    No
-                                    
-                </label>
+            <div class="col">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="radioStockYes" type="radio" name="stock" value="1" {% if product.config.show_stock %} checked="checked" {% endif %}>
+                    <label class="form-check-label" for="radioStockYes">
+                        {{ 'Yes' | trans }}
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="radioStockNo" type="radio" name="stock" value="0" {% if not product.config.show_stock %} checked="checked" {% endif %}>
+                    <label class="form-check-label" for="radioStockNo">
+                        {{ 'No' | trans }}
+                    </label>
+                </div>
             </div>
-            <div class="fix"></div>
         </div>
-
-        <div class="rowElem noborder">
-            <label>
-                {{ 'Server group name' | trans }}
-                :
-                            
+        <div class="mb-3 row">
+            <label class="form-label col-3">
+                {{ 'Server Group' | trans }}:
             </label>
-            <div class="formRight">
-                {% set groups = admin.serviceproxmox_server_groups() %}
-                <select name="group">
+            {% set groups = admin.serviceproxmox_server_groups() %}
+            <div class="col">
+                <select class="form-select" name="group">
                     {% for group in groups %}
-                        <option value="{{ group.group }}" {% if product.config.show_stock %} checked="checked" {% endif %}>
-                            {{ group.group }}
-                        </option>
+                        <option value="{{ group.group }}">{{ group.group }}</option>
                     {% endfor %}
                 </select>
-
             </div>
-            <div class="fix"></div>
         </div>
-
-        <div class="rowElem noborder">
-            <label>
-                {{ 'Filling method' | trans }}
-                :
-                            
+        <div class="mb-3 row">
+            <label class="form-label col-3">
+                {{ 'Server filling method' | trans }}:
             </label>
-            <div class="formRight">
-                <input type="radio" name="filling" value="least" {% if product.config.filling %} checked="checked" {% endif %} />
-                <label>
-                    Least filled server
-                                    
-                </label>
-                <input type="radio" name="filling" value="full" {% if not product.config.filling %} checked="checked" {% endif %} />
-                <label>
-                    Fill each server up
-                                    
-                </label>
-            </div>
-            <div class="fix"></div>
-        </div>
-
-        <div class="help">
-            <h5>
-                {{ 'VM settings' | trans }}
-            </h5>
-        </div>
-
-        <div class="rowElem">
-            <label>
-                {{ 'Virtualization type' | trans }}
-                :
-                            
-            </label>
-            <div class="formRight">
-                <input type="radio" name="virt" value="lxc" {% if product.config.virt == "lxc" %} checked="checked" {% endif %} />
-                <label>
-                    {{ 'LXC' | trans }}
-                </label>
-                <input type="radio" name="virt" value="qemu" {% if product.config.virt == "qemu" %} checked="checked" {% endif %} />
-                <label>
-                    {{ 'qemu' | trans }}
-                </label>
-            </div>
-            <div class="fix"></div>
-        </div>
-
-        <div class="rowElem noborder">
-            <label>
-                {{ 'Target storage' | trans }}
-                :
-                            
-            </label>
-            <div class="formRight">
-                <input type="text" name="storage" value="{{ product.config.storage }}" required="required" placeholder="{{ 'local' | trans }}"></div>
-                <div class="fix"></div>
-            </div>
-
-            <div class="rowElem noborder">
-                <label>
-                    {{ 'OS template (only LXC)' | trans }}
-                    :
-                                    
-                </label>
-                <div class="formRight">
-                    <input type="text" name="ostemplate" value="{{ product.config.ostemplate }}" placeholder="{{ 'local:vztmpl/debian.tar.gz' | trans }}"></div>
-                    <div class="fix"></div>
-                </div>
-
-                <div class="rowElem noborder">
-                    <label>
-                        {{ 'ISO (only qemu)' | trans }}
-                        :
-                                            
+            <div class="col">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="radioFillingYes" type="radio" name="filling" value="least"  {% if product.config.filling %} checked="checked" {% endif %} >
+                    <label class="form-check-label" for="radioFillingYes">
+                        {{ 'Least filled Server' | trans }}
                     </label>
-                    <div class="formRight">
-                        <input type="text" name="cdrom" value="{{ product.config.cdrom }}" placeholder="{{ 'local:iso/debian-latest-amd64.iso' | trans }}"></div>
-                        <div class="fix"></div>
-                    </div>
-
-                    <div class="rowElem noborder">
-                        <label>
-                            {{ 'RAM memory (in MB)' | trans }}
-                            :
-                                                    
-                        </label>
-                        <div class="formRight">
-                            <input type="text" name="memory" value="{{ product.config.memory }}" required="required" placeholder="{{ '1024' | trans }}"></div>
-                            <div class="fix"></div>
-                        </div>
-
-                        <div class="rowElem noborder">
-                            <label>
-                                {{ 'CPU core or limit' | trans }}
-                                :
-                                                            
-                            </label>
-                            <div class="formRight">
-                                <input type="text" name="cpu" value="{{ product.config.cpu }}" required="required" placeholder="{{ '1' | trans }}"></div>
-                                <div class="fix"></div>
-                            </div>
-
-                            <div class="rowElem noborder">
-                                <label>
-                                    {{ 'Network net0' | trans }}
-                                    :
-                                                                    
-                                </label>
-                                <div class="formRight">
-                                    <input type="text" name="network" value="{{ product.config.network }}" required="required" placeholder="{{ 'name=eth0,hwaddr=12:34:56:78:90:AB,ip=dhcp,ip6=dhcp,bridge=vmbr0' | trans }}"></div>
-                                    <div class="fix"></div>
-                                </div>
-
-                                <div class="rowElem noborder">
-                                    <label>
-                                        {{ 'Storage ide0 (Storage:Size in GB)' | trans }}
-                                        :
-                                                                            
-                                    </label>
-                                    <div class="formRight">
-                                        <input type="text" name="ide0" value="{{ product.config.ide0 }}" required="required" placeholder="{{ 'local:50' | trans }}"></div>
-                                        <div class="fix"></div>
-                                    </div>
-
-                                    <div class="rowElem noborder">
-                                        <label>
-                                            {{ 'Should the VM be a QEMU clone?' | trans }}
-                                            :
-                                                                                    
-                                        </label>
-                                        <div class="formRight">
-                                            <input type="radio" name="clone" value="1" {% if product.config.clone == 1 %} checked="checked" {% endif %} />
-                                            <label>
-                                                {{ 'yes' | trans }}
-                                            </label>
-                                            <input type="radio" name="clone" value="0" {% if product.config.clone == 0 %} checked="checked" {% endif %} />
-                                            <label>
-                                                {{ 'no' | trans }}
-                                            </label>
-                                        </div>
-                                        <div class="fix"></div>
-                                    </div>
-
-                                    <div class="rowElem noborder">
-                                        <label>
-                                            {{ 'VMID to clone (qemu clone only)' | trans }}
-                                            :
-                                                                                    
-                                        </label>
-                                        <div class="formRight">
-                                            <input type="text" name="cloneid" value="{{ product.config.cloneid }}" placeholder=""></div>
-                                            <div class="fix"></div>
-                                        </div>
-
-                                        <input type="submit" value="{{ 'Update' | trans }}" class="greyishBtn submitForm" />
-                                    </fieldset>
-
-                                    <input type="hidden" name="id" value="{{ product.id }}" />
-                                </form>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="radioFillingNo" type="radio" name="filling" value="full"  {% if not product.config.filling %} checked="checked" {% endif %} >
+                    <label class="form-check-label" for="radioFillingNo">
+                        {{ 'Fill up each Server until full' | trans }}
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <h2>
+            {{ 'Product Settings' | trans }}
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="mb-3 row">
+            <label class="form-label col-3">
+                {{ 'Virtualization Type' | trans }}:
+            </label>
+            <div class="col">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="radioVirtlxc" type="radio" name="virt" value="lxc" {% if product.config.virt == "lxc" %} checked="checked" {% endif %} >
+                    <label class="form-check-label" for="radioVirtlxc">
+                        {{ 'LXC Container' | trans }}
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" id="radioVirtqemu" type="radio" name="virt" value="qemu"  {% if product.config.virt == "qemu" %} checked="checked" {% endif %} >
+                    <label class="form-check-label" for="radioVirtqemu">
+                        {{ 'KVM Virtualization with QEMU' | trans }}
+                    </label>
+                </div>
+            </div>
+        </div>
+                {% set lxc_templates = admin.serviceproxmox_service_get_lxctemplates() %}
+        {% set vm_templates = admin.serviceproxmox_service_get_vmtemplates() %}
+        <div class="mb-3 row" id='select-lxc-template'>
+            <label class="form-label col-3 col-form-label">
+                {{ 'LXC Template' | trans }}:
+            </label>
+            <div class="col">
+                <select class="form-select" name="lxc-templ">
+                    {% for lxc_tmpl in lxc_templates %}
+                    <option value="{{ lxc_tmpl.id }}">{{ lxc_tmpl.description }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="mb-3 row" id='select-vm-template'>
+            <label class="form-label col-3 col-form-label">
+                {{ 'VM Template' | trans }}:
+            </label>
+            <div class="col">
+                <select class="form-select" name="vm-templ">
+                    {% for vm_tmpl in vm_templates %}
+                    <option value="{{ vm_tmpl.id }}">{{ vm_tmpl.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+</form>
+{% block js %}
+    <script>
+        document.getElementById('select-lxc-template').hidden = true;
+        document.getElementById('select-vm-template').hidden = true;
+        document.getElementById('radioVirtlxc').addEventListener('click', function() {
+            if (document.getElementById('radioVirtlxc').checked && !document.getElementById('radioVirtqemu').checked) {
+                document.getElementById('select-lxc-template').hidden = false;
+                document.getElementById('select-vm-template').hidden = true;
+            } else if (!document.getElementById('radioVirtlxc').checked && document.getElementById('radioVirtqemu').checked) {
+                document.getElementById('select-lxc-template').hidden = true;
+                document.getElementById('select-vm-template').hidden = false;
+            }  }
+        )
+        document.getElementById('radioVirtqemu').addEventListener('click', function() {
+            if (document.getElementById('radioVirtlxc').checked && !document.getElementById('radioVirtqemu').checked) {
+                document.getElementById('select-lxc-template').hidden = false;
+                document.getElementById('select-vm-template').hidden = true;
+            } else if (!document.getElementById('radioVirtlxc').checked && document.getElementById('radioVirtqemu').checked) {
+                document.getElementById('select-lxc-template').hidden = true;
+                document.getElementById('select-vm-template').hidden = false;
+            }  }
+        )
+    </script>
+{% endblock %}
                                 

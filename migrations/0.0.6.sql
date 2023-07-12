@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS `service_proxmox_vm_config_template` (
             `description` varchar(255) DEFAULT NULL,
             `cores` bigint(20) DEFAULT NULL,
             `memory` bigint(20) DEFAULT NULL,
-            -- boolean field for balloon
             `balloon` TINYINT(1) DEFAULT 0,
             `balloon_size` bigint(20) DEFAULT NULL,
             `os` varchar(255) DEFAULT NULL,

@@ -1,12 +1,19 @@
 <?php
 
 /**
- * Copyright 2022-2023 FOSSBilling
- * Copyright 2011-2021 BoxBilling, Inc.
- * SPDX-License-Identifier: Apache-2.0
+ * Proxmox module for FOSSBilling
  *
- * @copyright FOSSBilling (https://www.fossbilling.org)
- * @license http://www.apache.org/licenses/LICENSE-2.0 Apache-2.0
+ * @author   FOSSBilling (https://www.fossbilling.org) & Anuril (https://github.com/anuril) 
+ * @license  GNU General Public License version 3 (GPLv3)
+ *
+ * This software may contain code previously used in the BoxBilling project.
+ * Copyright BoxBilling, Inc 2011-2021
+ * Original Author: Scitch (https://github.com/scitch)
+ *
+ * This source file is subject to the GNU General Public License version 3 (GPLv3) that is bundled
+ * with this source code in the file LICENSE. 
+ * This Module has been written originally by Scitch (https://github.com/scitch) and has been forked from the original BoxBilling Module.
+ * It has been rewritten extensively.
  */
 
 namespace Box\Mod\Serviceproxmox\Controller;

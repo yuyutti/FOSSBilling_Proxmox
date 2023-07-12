@@ -210,7 +210,7 @@
 				</div>
 				</div>
                 <div class="tab-pane fade" id="tab-backup" role="tabpanel">
-					<form method="post" action="admin/serviceproxmox/proxmox_restore_backup" class="api-form" data-api-redirect="{{ 'serviceproxmox'|alink }}">
+					<form method="post" action="admin/serviceproxmox/proxmox_restore_backup" class="api-form" data-api-redirect="{{ 'extension/settings/serviceproxmox'|alink }}">
                         <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}">
                         <div class="card-body">
                             {% set backups = admin.serviceproxmox_proxmox_list_backups() %}
@@ -246,56 +246,57 @@
 
 {% block js %}
 <script>
+	// TODO: Fix this WIP mess
+	
 	var selectedStorageClass = null;
+	function deleteStorageClass() {
+	if (selectedStorageClass) {
+	// Delete the selected storage class (perform necessary logic here)
+	// You can use JavaScript or make an AJAX request to delete the storage class
 
-function deleteStorageClass() {
-if (selectedStorageClass) {
-// Delete the selected storage class (perform necessary logic here)
-// You can use JavaScript or make an AJAX request to delete the storage class
+	// Refresh the list after deletion
+	refreshStorageClassesList();
+	}
+	}
 
-// Refresh the list after deletion
-refreshStorageClassesList();
-}
-}
+	function saveStorageClass() {
+	var storageClassNameInput = document.getElementById('storageClassName');
+	var storageClassName = storageClassNameInput.value;
 
-function saveStorageClass() {
-var storageClassNameInput = document.getElementById('storageClassName');
-var storageClassName = storageClassNameInput.value;
+	if (selectedStorageClass) {
+	// Edit the selected storage class (perform necessary logic here)
+	// You can use JavaScript or make an AJAX request to edit the storage class
 
-if (selectedStorageClass) {
-// Edit the selected storage class (perform necessary logic here)
-// You can use JavaScript or make an AJAX request to edit the storage class
+	// Refresh the list after editing
+	refreshStorageClassesList();
+	} else {
+	// Add a new storage class (perform necessary logic here)
+	// You can use JavaScript or make an AJAX request to add the storage class
 
-// Refresh the list after editing
-refreshStorageClassesList();
-} else {
-// Add a new storage class (perform necessary logic here)
-// You can use JavaScript or make an AJAX request to add the storage class
+	// Refresh the list after adding
+	refreshStorageClassesList();
+	}
 
-// Refresh the list after adding
-refreshStorageClassesList();
-}
+	// Clear the input field and close the modal
+	storageClassNameInput.value = '';
+	$('#addEditStorageClassModal').modal('hide');
+	}
 
-// Clear the input field and close the modal
-storageClassNameInput.value = '';
-$('#addEditStorageClassModal').modal('hide');
-}
+	function refreshStorageClassesList() {
+	// Perform necessary logic to fetch the updated list of storage classes
+	// and update the <ul> element within the modal with the updated list
+	// You can use JavaScript or make an AJAX request to fetch the list
 
-function refreshStorageClassesList() {
-// Perform necessary logic to fetch the updated list of storage classes
-// and update the <ul> element within the modal with the updated list
-// You can use JavaScript or make an AJAX request to fetch the list
+	// Example:
+	var updatedStorageClasses = ['Storage Class A', 'Storage Class B', 'Storage Class C'];
+	var storageClassesList = document.querySelector('#storageClassesModal ul');
 
-// Example:
-var updatedStorageClasses = ['Storage Class A', 'Storage Class B', 'Storage Class C'];
-var storageClassesList = document.querySelector('#storageClassesModal ul');
-
-storageClassesList.innerHTML = '';
-updatedStorageClasses.forEach(function (storageclass) {
-var listItem = document.createElement('li');
-listItem.className = 'list-group-item';
-listItem.textContent = storageclass;
-storageClassesList.appendChild(listItem);
+	storageClassesList.innerHTML = '';
+	updatedStorageClasses.forEach(function (storageclass) {
+	var listItem = document.createElement('li');
+	listItem.className = 'list-group-item';
+	listItem.textContent = storageclass;
+	storageClassesList.appendChild(listItem);
 });
 }
 </script>{% endblock %}

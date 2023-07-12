@@ -3,20 +3,25 @@
 /**
  * Proxmox module for FOSSBilling
  *
- * @author   FOSSBilling (https://www.fossbilling.org) & Scitch (https://github.com/scitch)
+ * @author   FOSSBilling (https://www.fossbilling.org) & Anuril (https://github.com/anuril) 
  * @license  GNU General Public License version 3 (GPLv3)
  *
  * This software may contain code previously used in the BoxBilling project.
  * Copyright BoxBilling, Inc 2011-2021
+ * Original Author: Scitch (https://github.com/scitch)
  *
  * This source file is subject to the GNU General Public License version 3 (GPLv3) that is bundled
- * with this source code in the file LICENSE.
+ * with this source code in the file LICENSE. 
+ * This Module has been written originally by Scitch (https://github.com/scitch) and has been forked from the original BoxBilling Module.
+ * It has been rewritten extensively.
  */
 
 namespace Box\Mod\Serviceproxmox\Api;
 
 /**
  * Custom product management
+ * 
+ * 
  */
 class Client extends \Api_Abstract
 {
@@ -203,6 +208,10 @@ class Client extends \Api_Abstract
 
         return true;
     }
+
+    /**
+     * Get VNC console from PVE Host
+     */
     public function novnc_appjs_get($data)
     {
         $appjs = $this->getService()->get_novnc_appjs($data);

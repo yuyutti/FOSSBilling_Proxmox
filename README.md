@@ -23,15 +23,14 @@ Based on [previous work](https://github.com/scith/BoxBilling_Proxmox) by [Scith]
 ## TODOs:
 - Better Error Handling when creating unexpected things happen & get returned from pve host.
 - Better VM Allocation procedure
-- Consistent Naming: Server => Proxmox Virtual Environment Server | VM => Virtual Machine
-- VM & LXC Template setup need to be fixed and simplified
+- Consistent Naming: Templates might be confusing...
+- VM & LXC Template setup needs to be translated into actually creating VMs from it.
 - Provisioning of VMs with Cloudinit (https://pve.proxmox.com/wiki/Cloud-Init_Support)
 - Work on Usability to configure products and manage customer's products
 
 
 ## Requirements
 - Tested on Proxmox VE 7 or higher, PVE 6 should work too
-
 
 ## Installation
 - Copy the "Serviceproxmox" folder in *modules*

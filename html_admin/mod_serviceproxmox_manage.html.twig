@@ -9,20 +9,15 @@
     <tbody>
         <tr>
             <td>
-                {{ 'Status' | trans }}
-                :
-                            
+                {{ 'Status' | trans }}:
             </td>
             <td>
                 {{ mf.status_name(order.status) }}
             </td>
         </tr>
-
         <tr>
             <td>
-                {{ 'Server Name' | trans }}
-                :
-                            
+                {{ 'Server Name' | trans }}:                            
             </td>
             <td>
                 <a href="{{ 'serviceproxmox/server'|alink }}/{{ server.id }}">
@@ -32,9 +27,7 @@
         </tr>
         <tr>
             <td>
-                {{ 'Server Group' | trans }}
-                :
-                            
+                {{ 'Server Group' | trans }}:
             </td>
             <td>
                 <a href="{{ 'serviceproxmox/server'|alink }}/{{ server.id }}">
@@ -44,9 +37,7 @@
         </tr>
         <tr>
             <td>
-                {{ 'Server IPv4' | trans }}
-                :
-                            
+                {{ 'Server IPv4' | trans }}:
             </td>
             <td>
                 {{ server.ipv4 }}
@@ -54,9 +45,7 @@
         </tr>
         <tr>
             <td>
-                {{ 'Server IPv6' | trans }}
-                :
-                            
+                {{ 'Server IPv6' | trans }}:
             </td>
             <td>
                 {{ server.ipv6 }}
@@ -64,9 +53,7 @@
         </tr>
         <tr>
             <td>
-                {{ 'Server Hostname' | trans }}
-                :
-                            
+                {{ 'Server Hostname' | trans }}:
             </td>
             <td>
                 {{ server.hostname }}
@@ -74,9 +61,7 @@
         </tr>
         <tr>
             <td>
-                {{ 'Server root user' | trans }}
-                :
-                            
+                {{ 'Server root user' | trans }}:
             </td>
             <td>
                 {{ server.root_user }}
@@ -84,9 +69,7 @@
         </tr>
         <tr>
             <td>
-                {{ 'Server root password' | trans }}
-                :
-                            
+                {{ 'Server root password' | trans }}:
             </td>
             <td>
                 {{ server.root_password }}
@@ -106,7 +89,7 @@
                             {{ 'Jump to control panel'|trans }}
                         </span>
                     </a>
-
+                    <!-- TODO: Add functionality to recreate users' permissions -->
                     <a class="btn btn-primary api-link" href="{{ 'api/admin/serviceproxmox/sync'|link({'order_id' : order.id, 'CSRFToken': CSRFToken }) }}" data-api-confirm="{{ 'Are you sure?'|trans }}" data-api-msg="{{ 'Account was synced'|trans }}">
                         <svg class="icon" width="24" height="24">
                             <use xlink:href="#refresh" />

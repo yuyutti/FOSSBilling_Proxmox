@@ -3,14 +3,17 @@
 /**
  * Proxmox module for FOSSBilling
  *
- * @author   FOSSBilling (https://www.fossbilling.org) & Scitch (https://github.com/scitch)
+ * @author   FOSSBilling (https://www.fossbilling.org) & Anuril (https://github.com/anuril) 
  * @license  GNU General Public License version 3 (GPLv3)
  *
  * This software may contain code previously used in the BoxBilling project.
  * Copyright BoxBilling, Inc 2011-2021
+ * Original Author: Scitch (https://github.com/scitch)
  *
  * This source file is subject to the GNU General Public License version 3 (GPLv3) that is bundled
- * with this source code in the file LICENSE.
+ * with this source code in the file LICENSE. 
+ * This Module has been written originally by Scitch (https://github.com/scitch) and has been forked from the original BoxBilling Module.
+ * It has been rewritten extensively.
  */
 
 namespace Box\Mod\Serviceproxmox;
@@ -32,7 +35,7 @@ trait ProxmoxVM
 	{
 		// Shutdown VM
 		$this->vm_shutdown($order, $model);
-		// need to check that the VM was shutdown
+		// TODO: Check that the VM was shutdown, otherwise send an email to the admin
 
 		$model->updated_at = date('Y-m-d H:i:s');
 		$this->di['db']->store($model);
@@ -109,13 +112,7 @@ trait ProxmoxVM
 					throw new \Box_Exception("VMID cannot be found");
 				}
 				if ($proxmox->delete("/nodes/" . $model->node . "/" . $product_config['virt'] . "/" . $model->vmid)) {
-					// Delete Proxmox user if it exists : TO BE DONE
-					/*if($proxmox->get("/access/users/".$client->id.'@'.$server->realm)) {
-						//Update user information
-						if(!$proxmox->delete("/access/users/".$client->id.'@'.$server->realm)) {
-							throw new \Box_Exception("Proxmox user exists but could not be deleted");
-						}
-					}*/
+					// TODO: Check if that was the last VM for the client and delete the client user on Proxmox
 					return true;
 				} else {
 					throw new \Box_Exception("VM not deleted");
@@ -127,8 +124,9 @@ trait ProxmoxVM
 	}
 
 	/*
-		VM status
-		TO DO : add more infos
+	*	VM status
+	*
+	*	TODO: Add more Information
 	*/
 	public function vm_info($order, $service)
 	{
@@ -157,7 +155,7 @@ trait ProxmoxVM
 	}
 
 	/*
-		Reboot VM
+		Cold Reboot VM
 	*/
 	public function vm_reboot($order, $service)
 	{

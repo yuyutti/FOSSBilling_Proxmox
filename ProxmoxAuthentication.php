@@ -3,21 +3,22 @@
 /**
  * Proxmox module for FOSSBilling
  *
- * @author   FOSSBilling (https://www.fossbilling.org) & Scitch (https://github.com/scitch)
+ * @author   FOSSBilling (https://www.fossbilling.org) & Anuril (https://github.com/anuril) 
  * @license  GNU General Public License version 3 (GPLv3)
  *
  * This software may contain code previously used in the BoxBilling project.
  * Copyright BoxBilling, Inc 2011-2021
+ * Original Author: Scitch (https://github.com/scitch)
  *
  * This source file is subject to the GNU General Public License version 3 (GPLv3) that is bundled
- * with this source code in the file LICENSE.
+ * with this source code in the file LICENSE. 
+ * This Module has been written originally by Scitch (https://github.com/scitch) and has been forked from the original BoxBilling Module.
+ * It has been rewritten extensively.
  */
 
 namespace Box\Mod\Serviceproxmox;
 
-/**
- * Proxmox module for FOSSBilling
- */
+
 trait ProxmoxAuthentication
 {
 	/* ################################################################################################### */
@@ -31,156 +32,195 @@ trait ProxmoxAuthentication
 	 */
 	public function prepare_pve_setup($server)
 	{
-
+		// Retrieve the server access information
 		$serveraccess = $this->find_access($server);
-		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
-		if (!$proxmox->login()) {
-			throw new \Box_Exception("Failed to connect to the server. ");
-		}
-		// Create api token for Admin user if not logged in via api token
-		if (empty($server->tokenname) || empty($server->tokenvalue)) {
 
-			// check if the user that connects has Realm.AllocateUser permission
+		// Create a new instance of the PVE2_API class with the server access details
+		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+
+		// Attempt to log in to the server using the API
+		if (!$proxmox->login()) {
+			throw new \Box_Exception("Failed to connect to the server.");
+		}
+
+		// Create an API token for the Admin user if not logged in via API token
+		if (empty($server->tokenname) || empty($server->tokenvalue)) {
+			// Check if the connecting user has the 'Realm.AllocateUser' permission
 			$permissions = $proxmox->get("/access/permissions");
 			$found_permission = 0;
-			//echo "<script>console.log('".json_encode($permissions)."');</script>";
+			// Iterate through the permissions and check for 'Realm.AllocateUser' permission
 			foreach ($permissions as $permission) {
 				if ($permission['Realm.AllocateUser'] == 1) {
 					$found_permission += 1;
 				}
 			}
+			// Throw an exception if the 'Realm.AllocateUser' permission is not found
 			if (!$found_permission) {
-				throw new \Box_Exception("User does not have Realm.AllocateUser permission");
+				throw new \Box_Exception("User does not have 'Realm.AllocateUser' permission");
 			}
 
 			// Validate if there already is a group for fossbilling
 			$groups = $proxmox->get("/access/groups");
 			$foundgroups = 0;
+			// Iterate through the groups and check for a group beginning with 'fossbilling'
 			foreach ($groups as $group) {
-				//check if group beginning with fossbilling exists
 				if (strpos($group['groupid'], 'fossbilling') === 0) {
 					$foundgroups += 1;
 					$groupid = $group['groupid'];
 				}
 			}
-			// switch case there is no group, create one, if there is one, use it, if there are more than one, throw error
+			// Handle the cases where there are no groups, one group, or multiple groups
 			switch ($foundgroups) {
 				case 0:
-					// Create Group
+					// Create a new group
 					$groupid = 'fossbilling_' . rand(1000, 9999);
-					$newgroup = $proxmox->post("/access/groups", array('groupid' => $groupid, 'comment' => 'fossbilling group',));
+					$newgroup = $proxmox->post("/access/groups", array('groupid' => $groupid, 'comment' => 'fossbilling group'));
 					break;
 				case 1:
-					// Use Group
+					// Use the existing group
 					break;
 				default:
 					throw new \Box_Exception("More than one group found");
 					break;
 			}
+		}
 
 
-			// Validate if there already is a user & token for fossbilling
-			$users = $proxmox->get("/access/users");
-			$found = 0;
-			foreach ($users as $user) {
-				//check if user beginning with fossbilling exists
-				if (strpos($user['userid'], 'fb') === 0) {
-					$found += 1;
-					$userid = $user['userid'];
-				}
-				// switch case there is no user, create one, if there is one, use it, if there are more than one, throw error
-				switch ($found) {
-					case 0:
-						// Create user
-						$userid = 'fb_' . rand(1000, 9999) . '@pve'; // TODO: Make realm configurable in the module settings
-						$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->di['tools'], 'enable' => 1, 'comment' => 'fossbilling user', 'groups' => $groupid,));
 
-						// Create token
+		// Validate if there already is a user and token for fossbilling
+		$users = $proxmox->get("/access/users");
+		$found = 0;
+		// Iterate through the users and check for a user beginning with 'fb'
+		foreach ($users as $user) {
+			if (strpos($user['userid'], 'fb') === 0) {
+				$found += 1;
+				$userid = $user['userid'];
+			}
+			// Handle the cases where there are no users, one user, or multiple users
+			switch ($found) {
+				case 0:
+					// Create a new user
+					$userid = 'fb_' . rand(1000, 9999) . '@pve'; // TODO: Make realm configurable in the module settings
+					$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->di['tools'], 'enable' => 1, 'comment' => 'fossbilling user', 'groups' => $groupid));
 
-						$token = $proxmox->post("/access/users/" . $userid . "/token/fb_access", array());
-						// check if token was created
-						if ($token) {
-							$server->tokenname = $token['full-tokenid'];
-							$server->tokenvalue = $token['value'];
-						} else {
-							throw new \Box_Exception("Failed to create token for fossbilling user");
-							break;
-						}
+					// Create a token for the new user
+					$token = $proxmox->post("/access/users/" . $userid . "/token/fb_access", array());
+
+					// Check if the token was created successfully
+					if ($token) {
+						$server->tokenname = $token['full-tokenid'];
+						$server->tokenvalue = $token['value'];
+					} else {
+						throw new \Box_Exception("Failed to create token for fossbilling user");
 						break;
-					case 1:
-						// Create token 
-						$token = $proxmox->post("/access/users/" . $userid . "/token/fb_access", array());
-						if ($token) {
-							$server->tokenname = $token['full-tokenid'];
-							$server->tokenvalue = $token['value'];
-						} else {
-							throw new \Box_Exception("Failed to create token for fossbilling user");
-							break;
-						}
+					}
+					break;
+				case 1:
+					// Create a token for the existing user
+					$token = $proxmox->post("/access/users/" . $userid . "/token/fb_access", array());
+					if ($token) {
+						$server->tokenname = $token['full-tokenid'];
+						$server->tokenvalue = $token['value'];
+					} else {
+						throw new \Box_Exception("Failed to create token for fossbilling user");
 						break;
-					default:
-						throw new \Box_Exception("There are more than one fossbilling users on the server. Please delete all but one.");
-						break;
-				}
-				// Create permissions for the token we just created
-				// Setup permissions for that token (Admin user) so that it can create users and groups and manage them
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEUserAdmin', 'propagate' => 1, 'users' => $userid));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEAuditor', 'propagate' => 1, 'users' => $userid));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVESysAdmin', 'propagate' => 1, 'users' => $userid));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEPoolAdmin', 'propagate' => 1, 'users' => $userid));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEUserAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEAuditor', 'propagate' => 1, 'tokens' => $server->tokenname));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVESysAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEPoolAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
-				$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
-				sleep(5);
-				// Check if permissions were created correctly by logging in and creating another user
-				/*echo "<script>console.log('".json_encode($serveraccess)."');</script>";
+					}
+					break;
+				default:
+					throw new \Box_Exception("There are more than one fossbilling users on the server. Please delete all but one.");
+					break;
+			}
+			// Create permissions for the newly created token
+			// Set up permissions for the token (Admin user) to manage users, groups, and other administrative tasks
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEUserAdmin', 'propagate' => 1, 'users' => $userid));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEAuditor', 'propagate' => 1, 'users' => $userid));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVESysAdmin', 'propagate' => 1, 'users' => $userid));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEPoolAdmin', 'propagate' => 1, 'users' => $userid));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEUserAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEAuditor', 'propagate' => 1, 'tokens' => $server->tokenname));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVESysAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEPoolAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+			$permissions = $proxmox->put("/access/acl/", array('path' => '/', 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens' => $server->tokenname));
+
+			// Sleep for 5 seconds
+			sleep(5);
+
+			// Check if the permissions were created correctly by logging in and creating another user
+			/*
+				echo "<script>console.log('".json_encode($serveraccess)."');</script>";
 				echo "<script>console.log('".json_encode($userid)."');</script>";
 				echo "<script>console.log('".json_encode($server->realm)."');</script>";
 				echo "<script>console.log('".json_encode($server->tokenname)."');</script>";
-				echo "<script>console.log('".json_encode($server->tokenvalue)."');</script><br /><br />";*/
-				$server->root_password = null;
-				unset($proxmox);
+				echo "<script>console.log('".json_encode($server->tokenvalue)."');</script><br /><br />";
+				*/
 
-				//echo "<script>console.log('testpmx: ".json_encode($testpmx)."');</script>";
+			// Delete the root password and unset the PVE2_API instance
+			$server->root_password = null;
+			unset($proxmox);
 
-				return $this->test_access($server);
-			}
+			// Return the test_access result for the server
+			return $this->test_access($server);
 		}
 	}
 
 
+	/**
+	 * Tests the access to the server
+	 * 
+	 * @param  Server $server The server to test
+	 * @return bool           True if the test was successful, false otherwise
+	 * @throws Box_Exception
+	 */
 	public function test_access($server)
 	{
+		// Retrieve the server access information
 		$serveraccess = $this->find_access($server);
+
+		// Create a new instance of the PVE2_API class with the server access details
 		$proxmox = new PVE2_API($serveraccess, $server->root_user, $server->realm, $server->root_password, port: $server->port, tokenid: $server->tokenname, tokensecret: $server->tokenvalue);
+
+		// Attempt to log in to the server using the API
 		if (!$proxmox->login()) {
 			throw new \Box_Exception("Failed to connect to the server. testpmx");
 		}
 
+		// Generate a random test user ID
 		$userid = 'tfb_' . rand(1000, 9999) . '@pve'; // TODO: Make realm configurable in the module settings
+
+		// Create a new user for testing purposes
 		$newuser = $proxmox->post("/access/users", array('userid' => $userid, 'password' => $this->di['tools']->generatePassword(16, 4), 'enable' => '1', 'comment' => 'fossbilling user 2'));
 
+		// Retrieve the newly created user
 		$newuser = $proxmox->get("/access/users/" . $userid);
+
+		// Check if the new user was successfully created
 		if (!$newuser) {
 			throw new \Box_Exception("Failed to create test user for fossbilling");
 		} else {
-			// Delete user
+			// Delete the test user
 			$deleteuser = $proxmox->delete("/access/users/" . $userid);
+
+			// Check if the test user was successfully deleted
 			$deleteuser = $proxmox->get("/access/users/" . $userid);
 			if ($deleteuser) {
-				throw new \Box_Exception("Failed to delete test user for fossbilling. Check Permissions");
+				throw new \Box_Exception("Failed to delete test user for fossbilling. Check permissions.");
 			} else {
-				//delete root password from server
+				// Remove the root password from the server object
 				$server->root_password = null;
 				return $server;
 			}
 		}
 	}
 
-	// Function to create a new proxmox User on the server and save the token in the database
+
+	/**
+	 * Creates a new client user on the server
+	 *
+	 * @param  Server $server The server to create the user on
+	 * @param  Client $client The client to create the user for
+	 * @return void
+	 */
 	public function create_client_user($server, $client)
 	{
 		$clientuser = $this->di['db']->dispense('service_proxmox_users');
@@ -217,17 +257,10 @@ trait ProxmoxAuthentication
 		// Add permissions for client
 
 		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMUser,PVEVMAdmin,PVEDatastoreAdmin,PVEDatastoreUser', 'propagate' => 1, 'users' => $userid));
-		/* 
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMAdmin', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'users' => $userid));
-		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'users' => $userid));
-		 */
 
 		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMUser,PVEDatastoreUser', 'propagate' => 1, 'tokens' => $clientuser->view_tokenname));
-		//$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreUser', 'propagate' => 1, 'tokens', $clientuser->view_tokenname));
 
 		$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEVMAdmin,PVEDatastoreAdmin', 'propagate' => 1, 'tokens' => $clientuser->admin_tokenname));
-		//$permissions = $proxmox->put("/access/acl/", array('path' => '/pool/' . 'fb_client_' . $client->id, 'roles' => 'PVEDatastoreAdmin', 'propagate' => 1, 'tokens', $clientuser->admin_tokenname));
 
 
 	}

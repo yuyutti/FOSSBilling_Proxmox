@@ -108,6 +108,6 @@ CREATE TABLE IF NOT EXISTS `service_proxmox_templates` (
 			`sha512sum` varchar(255) DEFAULT NULL,
 			`version` varchar(255) DEFAULT NULL,
 			`infopage` varchar(255) DEFAULT NULL,
-			
-			PRIMARY KEY (`id`)
+			PRIMARY KEY (`id`),
+			UNIQUE KEY `sha512sum_idx` (`sha512sum`)
 		) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;

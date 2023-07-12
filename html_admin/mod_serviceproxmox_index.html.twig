@@ -3,7 +3,7 @@
 {% block meta_title %}
     {{ 'Proxmox servers' | trans }}
 {% endblock %}
-{% set active_menu = 'system' %}
+{% set active_menu = 'proxmox' %}
 
 {% block content %}
     <ul class="nav nav-tabs" role="tablist">
@@ -30,36 +30,13 @@
                 {{ 'Provisioned Services' | trans }}
             </a>
         </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link" href="#tab-vmtemplates" data-bs-toggle="tab">
-                {{ 'VM Templates' | trans }}
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link" href="#tab-new-vmtemplate" data-bs-toggle="tab">
-                <svg class="icon me-2">
-                    <use xlink:href="#plus" />
-                </svg>
-                {{ 'New VM Template' | trans }}
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link" href="#tab-lxctemplates" data-bs-toggle="tab">
-                {{ 'LXC Templates' | trans }}
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link" href="#tab-new-lxctemplate" data-bs-toggle="tab">
-                <svg class="icon me-2">
-                    <use xlink:href="#plus" />
-                </svg>
-                {{ 'New LXC Template' | trans }}
-            </a>
-        </li>
     </ul>
 
     <div class="card">
         <div class="tab-content">
+        <!-- ##############################################################################
+                                                List Servers
+             ############################################################################## -->
             <div class="tab-pane fade show active" id="tab-index" role="tabpanel">
                 <div class="card-body">
                     <h2>
@@ -72,7 +49,7 @@
                 <div style="padding: 0.25rem 1.5rem">
                     <strong> {{ group.group }}</strong> group
                 </div>
-                <table class="table card-table table-vcenter table-striped text-nowrap">
+                <table class="table card-table table-vcenter table-striped table-responsive text-nowrap">
                     <thead>
                         <tr>
                             <th>
@@ -156,7 +133,7 @@
                                 </a>
                                 <a class="btn btn-icon api-link" href="{{ 'api/admin/serviceproxmox/server_prepare_pve_setup'|link({ 'id': server.id, 'CSRFToken': CSRFToken }) }}" title="{{ 'Prepare Server' | trans }}" data-api-msg="{{ 'Server prepared' | trans }}">
                                     <svg class="icon">
-                                        <use xlink:href="#plus"/>
+                                        <use xlink:href="#arrow-back-up"/>
                                     </svg>
                                 </a>
                                 <a class="btn btn-icon" href="{{ '/serviceproxmox/server'|alink }}/{{ server.id }}">
@@ -183,6 +160,9 @@
                 </table>
             </div>
         </div>
+        <!-- ##############################################################################
+                                                Add new Server
+             ############################################################################## -->
         <div class="tab-content">
             <div class="tab-pane fade" id="tab-new-server" role="tabpanel">
                 <div class="card-body">
@@ -284,6 +264,9 @@
                 </div>
             </div>
         </div>
+        <!-- ##############################################################################
+                                            Storage Overview
+            ############################################################################## -->
         <div class="tab-content">
             <div class="tab-pane fade show" id="tab-storage" role="tabpanel">
                 <div class="card-body">
@@ -299,7 +282,7 @@
 							<strong>{{ type.group }} Storages</strong>
 						</div>
 						<div class="table-responsive">
-							<table class="table card-table table-vcenter table-striped text-nowrap">
+							<table class="table card-table table-vcenter table-striped table-responsive text-nowrap">
 								<thead>
 									<tr>
 										<th>
@@ -365,6 +348,9 @@
                 {% endfor %}
             </div>
         </div>
+        <!-- ##############################################################################
+                                        List of active Services
+             ############################################################################## -->
         <div class="tab-content">
             <div class="tab-pane fade show" id="tab-services" role="tabpanel">
             <div class="card-body">
@@ -380,7 +366,7 @@
                     All Services 
                 </strong>
             </div>
-            <table class="table card-table table-vcenter table-striped text-nowrap">
+            <table class="table card-table table-vcenter table-striped table-responsive text-nowrap">
                 <thead>
                     <tr>
                         <th>
@@ -446,147 +432,6 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
-        <div class="tab-content">
-            <div class="tab-pane fade show" id="tab-vmtemplates" role="tabpanel">
-                <div class="card-body">
-                    <h2>
-                        {{ 'VM Templates' | trans }}
-                    </h2>
-                </div>
-
-                {% set vmtemplates = admin.serviceproxmox_service_get_vmtemplates() %}
-                <div style="padding: 0.25rem 1.5rem">
-                    <strong>
-                        All VM Templates 
-                    </strong>
-                </div>
-                <table class="table card-table table-vcenter table-striped text-nowrap">
-                    <thead>
-                        <tr>
-                            <th>
-                                {{ 'Name' | trans }}
-                            </th>
-                            <th>
-                                {{ 'Description' | trans }}
-                            </th>
-                            <th>
-                                {{ 'CPU Cores' | trans }}
-                            </th>
-                            <th>
-                                {{ 'Memory' | trans }}
-                            </th>
-                            <th>
-                                {{ 'Storage' | trans }}
-                            </th>
-                            <th>
-                                {{ 'Created at' | trans }}
-                            </th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for template in vmtemplates %}
-                        <tr>
-                            <td>
-                                {{ template.name }}
-                            </td>
-                            <td>
-                                {{ template.cores }}
-                            </td>
-                            <td>
-                                {{ template.memory }}
-                            </td>
-                            <td>
-                                {# {% set content = template.storage|split('\n') %}
-                                {% for line in content %}
-                                {{ line }}
-                                <br>
-                                {% endfor %} #}
-                            </td>
-                            <td>
-                                {{ template.description }}
-                            </td>
-
-                            <td>
-                                <a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
-                                    <svg class="icon">
-                                        <use xlink:href="#edit" />
-                                    </svg>
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="tab-content">
-            <div class="tab-pane fade show" id="tab-lxctemplates" role="tabpanel">
-                <div class="card-body">
-                    <h2>
-                        {{ 'LXC Templates' | trans }}
-                    </h2>
-                </div>
-
-                {% set lxctemplates = admin.serviceproxmox_service_get_lxctemplates() %}
-                <div style="padding: 0.25rem 1.5rem">
-                    <strong>
-                        All LXC Templates 
-                    </strong>
-                </div>
-                <table class="table card-table table-vcenter table-striped text-nowrap">
-                    <thead>
-                        <tr>
-                            <th>
-                                {{ 'Description' | trans }}
-                            </th>
-                            <th>
-                                {{ 'OS' | trans }}
-                            </th>
-                            <th>
-                                {{ 'Template' | trans }}
-                            </th>
-                            <th>
-                                {{ 'Architecture' | trans }}
-                            </th>
-                            <th>
-                                {{ 'Version' | trans }}
-                            </th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for template in lxctemplates %}
-                        <tr>
-                            <td>
-                                {{ template.description }}
-                            </td>
-                            <td>
-                                {{ template.os }}
-                            </td>
-                            <td>
-                                {{ template.template }}
-                            </td>
-                            <td>
-                                {{ template.architecture }}
-                            </td>
-                            <td>
-                                {{ template.version }}
-                            </td>
-
-                            <td>
-                                <a class="btn btn-icon" href="{{ '/serviceproxmox/storage'|alink }}/{{ storage.id }}">
-                                    <svg class="icon">
-                                        <use xlink:href="#edit" />
-                                    </svg>
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
         </div>
     </div>
 {% endblock %}

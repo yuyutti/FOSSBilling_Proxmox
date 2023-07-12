@@ -3,14 +3,17 @@
 /**
  * Proxmox module for FOSSBilling
  *
- * @author   FOSSBilling (https://www.fossbilling.org) & Scitch (https://github.com/scitch)
+ * @author   FOSSBilling (https://www.fossbilling.org) & Anuril (https://github.com/anuril) 
  * @license  GNU General Public License version 3 (GPLv3)
  *
  * This software may contain code previously used in the BoxBilling project.
  * Copyright BoxBilling, Inc 2011-2021
+ * Original Author: Scitch (https://github.com/scitch)
  *
  * This source file is subject to the GNU General Public License version 3 (GPLv3) that is bundled
- * with this source code in the file LICENSE.
+ * with this source code in the file LICENSE. 
+ * This Module has been written originally by Scitch (https://github.com/scitch) and has been forked from the original BoxBilling Module.
+ * It has been rewritten extensively.
  */
 
 namespace Box\Mod\Serviceproxmox;
@@ -44,6 +47,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	use ProxmoxServer;
 	use ProxmoxVM;
 	use ProxmoxTemplates;
+	use ProxmoxIPAM;
 
 
 	public function validateCustomForm(array &$data, array $product)
@@ -140,6 +144,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			$filename = basename($migration, '.sql');
 			$version = str_replace('_', '.', $filename);
 			// run migration
+			error_log('Running migration ' . $version . ' from ' . $migration);
 			$this->di['db']->exec(file_get_contents($migration));
 			}
 		
@@ -158,7 +163,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 	/**
 	 * Method to uninstall module.
-	 *
+	 * Now creates a sql dump of the database tables and stores it in the pmxconfig folder
+	 * 
 	 * @return bool
 	 */
 	public function uninstall()
@@ -173,14 +179,28 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_config_template`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_storage_template`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_vm_network_template`");
-		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_appliance`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_storageclass`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_client_network`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_ip_networks`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_ip_range`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_client_vlan`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_config_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_network_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_storage_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_qemu_template`");
+
 		return true;
 	}
 
 
-	// Function to upgrade module Database
 
+	/**
+	 * Method to upgrade module.
+	 * 
+	 * @param string $previous_version
+	 * @return bool
+	 */
 	public function upgrade($previous_version)
 	{
 		// read current module version from manifest.json
@@ -214,6 +234,13 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		return true;
 	}
 
+	/**
+	 * Method to check if all tables have been migrated to current Module Version.
+	 * Not yet used, but will be in the admin settings page for the module
+	 * 
+	 * @param string $action
+	 * @return bool
+	 */
 	public function check_db_migration()
 	{
 		// read current module version from manifest.json
@@ -236,7 +263,12 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		return true;
 	}
 
-	// Function to create configuration Backups of Proxmox tables
+	/**
+	 * Method to create configuration Backups of Proxmox tables
+	 * 
+	 * @param string $data - 'uninstall' or 'backup'
+	 * @return bool
+	 */
 	public function pmxdbbackup($data)
 	{
 		// create backup of all Proxmox tables
@@ -285,7 +317,11 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		return true;
 	}
 
-	// Function to list all Proxmox backups
+	/**
+	 * Method to list all Proxmox backups
+	 * 
+	 * @return array
+	 */
 	public function pmxbackuplist()
 	{
 		$files = glob(PATH_ROOT . '/pmxconfig/*.sql');
@@ -296,7 +332,14 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		return $backups;
 	}
 
-	// function to restore Proxmox tables from backup
+
+	/**
+	 * Method to restore Proxmox tables from backup
+	 * It's a bit destructive, as it will drop & overwrite all existing tables
+	 * 
+	 * @param string $data - filename of backup
+	 * @return bool
+	 */
 	public function pmxbackuprestore($data)
 	{
 		// get filename from $data and see if it exists using finder
@@ -332,6 +375,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	}
 
 	// Create function that runs with cron job hook
+	// This function will run every 5 minutes and update all servers
+	// Disabled for now
 	/*
 	public static function onBeforeAdminCronRun(\Box_Event $event)
 	{
@@ -363,25 +408,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	public function create($order)
 	{
 		$config = json_decode($order->config, 1);
-		//$this->validateOrderData($config);
-		/*
-		    public function validateOrderData(array &$data)
-			{
-				if(!isset($data['server_id'])) {
-					throw new \Box_Exception('Hosting product is not configured completely. Configure server for hosting product.', null, 701);
-				}
-				if(!isset($data['hosting_plan_id'])) {
-					throw new \Box_Exception('Hosting product is not configured completely. Configure hosting plan for hosting product.', null, 702);
-				}
-				if(!isset($data['sld']) || empty($data['sld'])) {
-					throw new \Box_Exception('Domain name is not valid.', null, 703);
-				}
-				if(!isset($data['tld']) || empty($data['tld'])) {
-					throw new \Box_Exception('Domain extension is not valid.', null, 704);
-				}
-			}
-		*/
-
+		
 		$product = $this->di['db']->getExistingModelById('Product', $order->product_id, 'Product not found');
 
 		$model                	= $this->di['db']->dispense('service_proxmox');
@@ -409,7 +436,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			throw new \Box_Exception('Could not activate order. Service was not created');
 		}
 		$config = json_decode($order->config, 1);
-		//$this->validateOrderData($c);//
+
 		$client  = $this->di['db']->load('client', $order->client_id);
 		$product = $this->di['db']->load('product', $order->product_id);
 		if (!$product) {
@@ -434,10 +461,6 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
 		// Create Proxmox VM
 		if ($proxmox->login()) {
-
-			//$proxmox->delete("/nodes/".$model->node."/qemu/".$model->vmid);
-			//return var_export($promox, true);
-
 			// compile VMID by combining the server id, the client id, and the order id separated by padded zeroes for thee numbers per variable
 			$vmid = $server->id . str_pad($client->id, 3, '0', STR_PAD_LEFT) . str_pad($order->id, 3, '0', STR_PAD_LEFT);
 
@@ -462,24 +485,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 					'description' => $description,
 					'full' => true
 				);
-			} else { // TODO: Fix Container templates 
-				/* postdata= {
-					"vmid":"2001002",
-					"node":"dct-pub-vh01",
-					"name":"vm2001002",
-					"description":"Service package 1 belonging to client id: 1",
-					"storage":"Storage01",
-					"memory":"256",
-					"ostype":"126",
-					"ide2":"none,media=cdrom",
-					"sockets":"1",
-					"cores":"1",
-					"numa":"0",
-					"scsihw":"virtio-scsi-single",
-					"scsi0":"Storage01:10GB,iothread=on",
-					"pool":"fb_client_1",
-					"net":"virtio,bridge=vmbr0,firewall=1"
-					} */
+			} else { // TODO: Implement Container templates 
 				if ($product_config['virt'] == 'qemu') {
 					$container_settings = array(
 						'vmid' => $vmid,
@@ -512,15 +518,15 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 					// Storage to do for LXC
 				}
 			}
-			//echo "Debug:\n " . json_encode($container_settings) . "\n \n";
-			// If the1 VM is properly created
+
+			// If the VM is properly created
 			$vmurl = "/nodes/" . $server->name . "/" . $product_config['virt'] . $clone;
-			//echo "Debug:\n " . $vmurl . "\n \n";
+
 			$vmcreate = $proxmox->post($vmurl, $container_settings);
 			//echo "Debug:\n " . var_dump($vmcreate) . "\n \n";
 			if ($vmcreate) {
 
-				// Start the server
+				// Start the vm
 				sleep(20);
 				$proxmox->post("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
 				$status = $proxmox->get("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
@@ -532,7 +538,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 						$proxmox->post("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/start", array());
 						sleep(10);
 						$status = $proxmox->get("/nodes/" . $server->name . "/" . $product_config['virt'] . "/" . $vmid . "/status/current");
-						// Starting twice => error...
+						// TODO: Check Startup
 					}
 				} else {
 					throw new \Box_Exception("VMID cannot be found");
@@ -550,18 +556,24 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$model->updated_at    	= date('Y-m-d H:i:s');
 		$model->vmid			= $vmid;
 		$model->password		= $proxmoxuser_password;
-		//$model->ipv4			= $ipv4;      	//How to do that? 
-		//$model->ipv6			= $ipv6;		//How to do that?
-		//$model->hostname		= $hostname;	//How to do that?
+		//$model->ipv4			= $ipv4;      	// TODO: Retrieve IP address of the VM from the PMX IPAM module
+		//$model->ipv6			= $ipv6;		// TODO: Retrieve IP address of the VM from the PMX IPAM module
+		//$model->hostname		= $hostname;	// TODO: Retrieve hostname from the Order form
 		$this->di['db']->store($model);
 
 		return array(
-			'ip'	=> 	'to be sent by us shortly',		// Return IP address of the VM?
+			'ip'	=> 	'to be sent by us shortly',		// $model->ipv4 - Return IP address of the VM
 			'username'  =>  'root',
-			'password'  =>  $proxmoxuser_password,
+			'password'  =>  'See Admin Area', // Password won't be sen't by E-Mail. It will be stored in the database and can be retrieved from the client area
 		);
 	}
 
+	/**
+	 * Get the API array representation of a model
+	 * Important to interact with the Order
+	 * @param  object $model
+	 * @return array
+	 */
 	public function toApiArray($model)
 	{
 		// Retrieve associated server

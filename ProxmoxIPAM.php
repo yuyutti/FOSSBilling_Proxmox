@@ -21,26 +21,32 @@ namespace Box\Mod\Serviceproxmox;
 /**
  * Proxmox module for FOSSBilling
  */
-trait ProxmoxTemplates
+trait ProxmoxIPAM
 {
 	/* ################################################################################################### */
-	/* ####################################  VM Template Mgmt  ########################################### */
+	/* ####################################  IPAM Management   ########################################### */
 	/* ################################################################################################### */
 	
 	// Function that gets all the VM templates and returns them as an array
-	public function get_vmtemplates()
+	public function get_ip_ranges()
 	{
 		// get all the VM templates from the service_proxmox_vm_config_template table
-		$templates = $this->di['db']->findAll('service_proxmox_vm_config_template');
-		return $templates;
+		$ip_ranges = $this->di['db']->find('service_proxmox_ip_range');
+		return $ip_ranges;
 	}
 
 
 	// Function that gets all the LXC templates and returns them as an array
-	public function get_lxctemplates()
+	public function get_vlans()
 	{
 		// get all the LXC templates from the service_proxmox_lxc_config_template table
-		$templates = $this->di['db']->findAll('service_proxmox_lxc_config_template');
-		return $templates;
+		$vlans = $this->di['db']->find('service_proxmox_client_vlan');
+		// Fill in the client name
+		foreach ($vlans as $vlan) {
+			$client = $this->di['db']->getExistingModelById('client', $vlan->client_id);
+			$vlan->client_name = $client->first_name." ".$client->last_name;
+		}
+
+		return $vlans;
 	}
 }

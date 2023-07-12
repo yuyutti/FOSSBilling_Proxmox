@@ -35,9 +35,7 @@
         1
                 
         {% if server.status == "running" %}
-            <!-- implement iframe with asset 
-                    <iframe src="{{ 'vnc.html' | mod_asset_url('serviceproxmox') }}?console=kvm&novnc=1&vmid={{ proxmox_service.vmid }}&node={{ server.name }}&vncport={{ vm.cli['port']}}&vncticket={{ vm.cli['ticket']}}}}" width="860" height="600" frameborder="0"></iframe>
-            -->
+            <!-- TODO: implement vnc console -->
                 {% else %}
                 {{ 'The server needs to be running' | trans }}
             {% endif %}
