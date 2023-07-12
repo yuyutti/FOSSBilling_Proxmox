@@ -652,6 +652,13 @@ class Admin extends \Api_Abstract
         return $output;
     }
 
+    // service_get_lxctemplates function to retrieve list of lxc templates
+    public function service_get_lxctemplates()
+    {
+        $output = $this->getService()->get_lxctemplates();
+        return $output;
+    }
+
     /* ################################################################################################### */
     /* ########################################  Permissions  ############################################ */
     /* ################################################################################################### */

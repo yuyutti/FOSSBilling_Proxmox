@@ -31,4 +31,13 @@ trait ProxmoxTemplates
 		$templates = $this->di['db']->findAll('service_proxmox_vm_config_template');
 		return $templates;
 	}
+
+
+	// Function that gets all the LXC templates and returns them as an array
+	public function get_lxctemplates()
+	{
+		// get all the LXC templates from the service_proxmox_lxc_config_template table
+		$templates = $this->di['db']->findAll('service_proxmox_lxc_config_template');
+		return $templates;
+	}
 }
