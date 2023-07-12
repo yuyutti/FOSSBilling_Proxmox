@@ -145,7 +145,12 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			$version = str_replace('_', '.', $filename);
 			// run migration
 			error_log('Running migration ' . $version . ' from ' . $migration);
-			$this->di['db']->exec(file_get_contents($migration));
+			// use exec instead of query to allow multiple queries in one file
+			
+			exec('mysql -u ' . $this->di['config']['db']['user'] . ' -p' . $this->di['config']['db']['password'] . ' ' . $this->di['config']['db']['name'] .' < '.$migration);
+
+			
+
 			}
 		
 		// Create table for vm 
