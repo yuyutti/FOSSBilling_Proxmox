@@ -186,7 +186,7 @@
                 </div>
                 <div class="card-body">
    
-                {% set client_networks = admin.serviceproxmox_service_get_vlans() %}
+                {% set client_vlans = admin.serviceproxmox_service_get_vlans() %}
                     <div style="padding: 0.25rem 1.5rem">
                         <strong>
                             All Client VLANs
@@ -208,24 +208,24 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for client_network in client_networks %}
+                            {% for client_vlan in client_vlans %}
                             <tr>
                                 <td>
-                                    {{ client_network.client_name }}
+                                    {{ client_vlan.client_name }}
                                 </td>
                                 <td>
-                                    {{ client_network.vlan }}
+                                    {{ client_vlan.vlan }}
                                 </td>
                                 <td>
-                                    {{ client_network.ip_range }}
+                                    {{ client_vlan.ip_range }}
                                 </td>
                                 <td>
-                                    <a class="btn btn-icon" href="{{ '/serviceproxmox/ipam/clientnetwork'|alink }}/{{ client_network.id }}">
+                                    <a class="btn btn-icon" href="{{ '/serviceproxmox/ipam/clientnetwork'|alink }}/{{ client_vlan.id }}">
                                         <svg class="icon">
                                             <use xlink:href="#edit" />
                                         </svg>
                                     </a>
-                                    <a class="btn btn-icon api-link" data-api-confirm="{{ 'Are you sure?' | trans }}" data-api-redirect="{{ 'serviceproxmox/ipam'|alink }}" href="{{ 'api/admin/serviceproxmox/client_network_delete'|link({ 'id': client_network.id, 'CSRFToken': CSRFToken }) }}">
+                                    <a class="btn btn-icon api-link" data-api-confirm="{{ 'Are you sure?' | trans }}" data-api-redirect="{{ 'serviceproxmox/ipam'|alink }}" href="{{ 'api/admin/serviceproxmox/client_vlan_delete'|link({ 'id': client_vlan.id, 'CSRFToken': CSRFToken }) }}">
                                         <svg class="icon">
                                             <use xlink:href="#delete" />
                                         </svg>
