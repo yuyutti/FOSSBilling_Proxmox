@@ -257,11 +257,11 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_network_template`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_lxc_storage_template`");
 		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_qemu_template`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_ipam_settings`");
+		$this->di['db']->exec("DROP TABLE IF EXISTS `service_proxmox_ipadress`");
 
 		return true;
 	}
-
-
 
 	/**
 	 * Method to upgrade module.
@@ -410,6 +410,59 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 				'service_proxmox_lxc_network_template',
 				'service_proxmox_qemu_template',
 				'service_proxmox_client_vlan',
+				'service_proxmox_ip_range',
+/* 				'service_proxmox_ipadress',
+				'service_proxmox_ipam_settings' */
+			);
+	
+			// Initialize backup variable
+			$backup = '';
+	
+			// Loop through tables and create SQL statement
+			foreach($tables as $table) {
+				$result = $pdo->query('SELECT * FROM '.$table);
+				$num_fields = $result->columnCount();
+	
+				$backup .= 'DROP TABLE IF EXISTS '.$table.';';
+				$row2 = $pdo->query('SHOW CREATE TABLE '.$table)->fetch(PDO::FETCH_NUM);
+				$backup .= "\n\n".$row2[1].";\n\n";
+	
+				while ($row = $result->fetch(PDO::FETCH_NUM)) {
+					$backup .= 'INSERT INTO '.$table.' VALUES(';
+					for ($j=0; $j<$num_fields; $j++) {
+						$row[$j] = addslashes($row[$j]);
+						$row[$j] = preg_replace("/\n/","\\n",$row[$j]);
+						if (isset($row[$j])) { $backup .= '"'.$row[$j].'"'; } else { $backup .= '""'; }
+						if ($j<($num_fields-1)) { $backup .= ','; }
+					}
+					$backup .= ");\n";
+				}
+				$backup .= "\n\n\n";
+			}
+	
+			// Save to file
+			$handle = fopen(PATH_ROOT . $filename, 'w+');
+			fwrite($handle, $backup);
+			fclose($handle);
+			// create PDO instance
+			$pdo = new PDO('mysql:host=localhost;dbname='.$db_name, $db_user, $db_password);
+	
+			// List of tables to backup
+			$tables = array(
+				'service_proxmox_server',
+				'service_proxmox',
+				'service_proxmox_users',
+				'service_proxmox_storageclass',
+				'service_proxmox_storage',
+				'service_proxmox_lxc_appliance',
+				'service_proxmox_vm_config_template',
+				'service_proxmox_vm_storage_template',
+				'service_proxmox_vm_network_template',
+				'service_proxmox_lxc_config_template',
+				'service_proxmox_lxc_storage_template',
+				'service_proxmox_lxc_network_template',
+				'service_proxmox_qemu_template',
+				'service_proxmox_client_vlan',
 				'service_proxmox_ip_range'
 			);
 	
@@ -485,7 +538,6 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		}
 		return $backups;
 	}
-
 
 	/**
 	 * Method to restore Proxmox tables from backup
@@ -589,7 +641,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		$model->updated_at    	= date('Y-m-d H:i:s');
 
 		// Find suitable server and save it to service_proxmox
-		$$model->server_id = $this->find_empty($product);
+		$model->server_id = $this->find_empty($product);
 		// Retrieve server info
 
 		$this->di['db']->store($model);

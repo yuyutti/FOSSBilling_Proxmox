@@ -43,4 +43,12 @@ trait ProxmoxTemplates
 		$templates = $this->di['db']->findAll('service_proxmox_lxc_config_template');
 		return $templates;
 	}
+
+	// Function that gets all qemu templates and returns them as an array
+	public function get_qemutemplates()
+	{
+		// get all the qemu templates from the service_proxmox_qemu_template table
+		$qemu_templates = $this->di['db']->findAll('service_proxmox_qemu_template');
+		return $qemu_templates;
+	}
 }

@@ -216,8 +216,7 @@ CREATE TABLE IF NOT EXISTS `service_proxmox_lxc_network_template` (
             KEY `template_id_idx` (`template_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
 -- --------------------------------------------------------
-
---- New Table: service_proxmox_client_vlan
+-- New Table: service_proxmox_client_vlan
 -- --------------------------------------------------------
 -- Table to store client vlans
 -- --------------------------------------------------------
@@ -233,8 +232,7 @@ CREATE TABLE IF NOT EXISTS `service_proxmox_client_vlan` (
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1;
 
 -- --------------------------------------------------------
-
---- New Table: service_proxmox_ip_range
+-- New Table: service_proxmox_ip_range
 -- --------------------------------------------------------
 -- Table to store ip networks
 -- --------------------------------------------------------

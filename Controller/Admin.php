@@ -85,6 +85,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         $app->get('/serviceproxmox/maintenance/backup', 'start_backup', null, get_class($this));
         $app->get('/serviceproxmox/server/:id', 'get_server', array('id' => '[0-9]+'), get_class($this));
         $app->get('/serviceproxmox/storage', 'get_storage', null, get_class($this));
+        $app->get('/serviceproxmox/server/by_group/:id', 'get_server_by_group',  null, get_class($this));
         $app->get('/serviceproxmox/storage/:id', 'get_storage', array('id' => '[0-9]+'), get_class($this));
         $app->get('/serviceproxmox/storageclass', 'get_storage', null, get_class($this));
         $app->get('/serviceproxmox/storageclass/:id', 'get_storageclass ', array('id' => '[0-9]+'), get_class($this));
@@ -133,6 +134,14 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         $this->di['is_admin_logged'];
         $api = $this->di['api_admin'];
         $server = $api->Serviceproxmox_server_get(array('server_id' => $id));
+        return $app->render('mod_serviceproxmox_server', array('server' => $server));
+    }
+
+    public function get_server_by_group(\Box_App $app)
+    {
+        $this->di['is_admin_logged'];
+        $api = $this->di['api_admin'];
+        $server = $api->Serviceproxmox_servers_in_group(array('group' => $id));
         return $app->render('mod_serviceproxmox_server', array('server' => $server));
     }
 

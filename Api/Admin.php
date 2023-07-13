@@ -239,6 +239,37 @@ class Admin extends \Api_Abstract
         return $groups;
     }
 
+    /** 
+     * get list of servers in a group
+     * 
+     */
+    public function servers_in_group($data)
+    {
+        $sql = "SELECT * FROM `service_proxmox_server` WHERE `group` = '" . $data['group']. "' AND `active` = 1";
+
+        $servers = $this->di['db']->getAll($sql);
+
+        // remove password & api keys from results
+        foreach ($servers as $key => $server) {
+            $servers[$key]['root_password'] = '';
+            $servers[$key]['tokenvalue'] = '';
+        }
+
+        return $servers;
+    }
+
+    /**
+     * Get list of qemu templates for a server
+     * 
+     */
+    public function qemu_templates_on_server($data)
+    {
+        $sql = "SELECT * FROM `service_proxmox_qemu_template` WHERE `server_id` = '" . $data['server_id'] . "'";
+        $templates = $this->di['db']->getAll($sql);
+        return $templates;
+    }
+
+
     /**
      * Get list of OS types
      * 
@@ -561,7 +592,28 @@ class Admin extends \Api_Abstract
             $server->ram_allocated += $value['maxmem'];
         }
         $this->di['db']->store($server);
+        $qemu_templates = $service->getQemuTemplates($server);
+        foreach ($qemu_templates as $key => $value) {
+            if ($value['template'] == 1) {
+                $sql = "SELECT * FROM `service_proxmox_qemu_template` WHERE server_id = " . $server_id . " AND vmid = " . $value['vmid'];
+                $template = $this->di['db']->getAll($sql);
 
+                // if the template exists, update it, otherwise create it
+                if (!empty($template)) {
+                    $template = $this->di['db']->findOne('service_proxmox_qemu_template', 'server_id=:server_id AND vmid=:vmid', array(':server_id' => $server_id, ':vmid' => $value['vmid']));
+                } else {
+                    $template = $this->di['db']->dispense('service_proxmox_qemu_template');
+                }
+                $template->vmid = $value['vmid'];
+                $template->server_id = $server_id;
+                $template->name = $value['name'];
+                $template->created_at = date('Y-m-d H:i:s', $value['ctime']);
+                $template->updated_at = date('Y-m-d H:i:s', $value['ctime']);
+
+                $stored = $this->di['db']->store($template);
+                error_log('template saved: ' . print_r($stored, true));
+            }
+        }
 
         return $hardware_data;
     }
@@ -658,8 +710,6 @@ class Admin extends \Api_Abstract
             // check if the appliance already exists
             //$appliance = $this->di['db']->findOne('service_proxmox_lxc_appliance', 'sha512sum=:sha512sum', array(':sha512sum' => $appliance['sha512sum']));
             // if the appliance exists, update it, otherwise create it
-            
-            $template = $this->di['db']->dispense('service_proxmox_lxc_appliance');
             
             $template = $this->di['db']->dispense('service_proxmox_lxc_appliance');
             $template->headline = $appliance['headline'];
@@ -814,6 +864,17 @@ class Admin extends \Api_Abstract
     public function service_get_vmtemplates()
     {
         $output = $this->getService()->get_vmtemplates();
+        return $output;
+    }
+
+    /**
+     * Get list of qemu templates
+     * 
+     * @return array
+     */
+    public function service_get_qemutemplates()
+    {
+        $output = $this->getService()->get_qemutemplates();
         return $output;
     }
 

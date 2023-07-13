@@ -32,10 +32,19 @@
             </label>
             {% set groups = admin.serviceproxmox_server_groups() %}
             <div class="col">
-                <select class="form-select" name="group">
+                <select class="form-select" id='group-selector' name="group">
                     {% for group in groups %}
                         <option value="{{ group.group }}">{{ group.group }}</option>
                     {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="mb-3 row">
+            <label class="form-label col-3">
+                {{ 'Server' | trans }}:
+            </label>
+            <div class="col" >
+                <select class="form-select" id='server-selector' name="server">
                 </select>
             </div>
         </div>
@@ -84,11 +93,12 @@
                 </div>
             </div>
         </div>
-                {% set lxc_templates = admin.serviceproxmox_service_get_lxctemplates() %}
+        {% set lxc_templates = admin.serviceproxmox_service_get_lxctemplates() %}
         {% set vm_templates = admin.serviceproxmox_service_get_vmtemplates() %}
+        {% set qemu_templates = admin.serviceproxmox_service_get_qemutemplates() %}
         <div class="mb-3 row" id='select-lxc-template'>
             <label class="form-label col-3 col-form-label">
-                {{ 'LXC Template' | trans }}:
+                {{ 'LXC Configuration Template' | trans }}:
             </label>
             <div class="col">
                 <select class="form-select" name="lxc-templ">
@@ -98,9 +108,9 @@
                 </select>
             </div>
         </div>
-        <div class="mb-3 row" id='select-vm-template'>
+        <div class="mb-3 row" id='select-vm-config-template'>
             <label class="form-label col-3 col-form-label">
-                {{ 'VM Template' | trans }}:
+                {{ 'VM Configuration Template' | trans }}:
             </label>
             <div class="col">
                 <select class="form-select" name="vm-templ">
@@ -110,30 +120,119 @@
                 </select>
             </div>
         </div>
+        <div class="mb-3 row" id='select-template-vm'>
+            <label class="form-label col-3 col-form-label">
+                {{ 'Template VM ID' | trans }}:
+            </label>
+            <div class="col">
+                <select class="form-select" name="vm-templ" id='vm-selector'>
+                </select>
+            </div>
+        </div>
     </div>
 </form>
 {% block js %}
     <script>
         document.getElementById('select-lxc-template').hidden = true;
-        document.getElementById('select-vm-template').hidden = true;
+        document.getElementById('select-vm-config-template').hidden = true;
+        document.getElementById('select-template-vm').hidden = true;
         document.getElementById('radioVirtlxc').addEventListener('click', function() {
             if (document.getElementById('radioVirtlxc').checked && !document.getElementById('radioVirtqemu').checked) {
                 document.getElementById('select-lxc-template').hidden = false;
-                document.getElementById('select-vm-template').hidden = true;
+                document.getElementById('select-vm-config-template').hidden = true;
+                document.getElementById('select-template-vm').hidden = true;
             } else if (!document.getElementById('radioVirtlxc').checked && document.getElementById('radioVirtqemu').checked) {
                 document.getElementById('select-lxc-template').hidden = true;
-                document.getElementById('select-vm-template').hidden = false;
+                document.getElementById('select-vm-config-template').hidden = false;
+                document.getElementById('select-template-vm').hidden = false;
             }  }
         )
         document.getElementById('radioVirtqemu').addEventListener('click', function() {
             if (document.getElementById('radioVirtlxc').checked && !document.getElementById('radioVirtqemu').checked) {
                 document.getElementById('select-lxc-template').hidden = false;
-                document.getElementById('select-vm-template').hidden = true;
+                document.getElementById('select-vm-config-template').hidden = true;
+                document.getElementById('select-template-vm').hidden = true;
             } else if (!document.getElementById('radioVirtlxc').checked && document.getElementById('radioVirtqemu').checked) {
                 document.getElementById('select-lxc-template').hidden = true;
-                document.getElementById('select-vm-template').hidden = false;
+                document.getElementById('select-vm-config-template').hidden = false;
+                document.getElementById('select-template-vm').hidden = false;
             }  }
         )
+
+        // add event listener to the group selector
+        var groupSelector = document.getElementById('group-selector');
+        groupSelector.addEventListener('change', function() {
+            // Get the selected group
+            $group = $(this).val();
+    
+            // Populate the servers in the selected group
+            populateServers($group);
+        });
+        groupSelector.dispatchEvent(new Event('change'));
+
+        function populateServers(group) {
+            var serverSelector = document.getElementById('server-selector');    
+            // Clear existing options
+            $(serverSelector).html('');
+
+            console.log('group: ' + group);
+            // Make an AJAX request to retrieve servers in the selected group
+            $.ajax({
+            url: '/index.php?_url=/api/admin/serviceproxmox/servers_in_group', // Replace with the actual URL to your server-side endpoint
+            method: 'POST', // or 'GET', depending on your server-side implementation
+            data: { group: group, 
+            CSRFToken: "{{ CSRFToken }}"
+            },
+            success: function(response) {
+                // Iterate over the servers and append options to the select input
+                response.result.forEach(function(server) {
+                $(serverSelector).html($(serverSelector).html() + '<option value="' + server.id + '">' + server.name + '</option>');
+                });
+                serverSelector.dispatchEvent(new Event('change'));
+            },
+            error: function() {
+                console.log('Error occurred while retrieving servers.');
+            }
+        });
+        }
+        // Add code to populate the vm templates based on selected server
+        var serverSelector = document.getElementById('server-selector');
+        serverSelector.addEventListener('change', function() {
+            // Get the selected group
+            $server = $(this).val();
+    
+            // Populate the servers in the selected group
+            populateTemplates($server);
+        });
+
+        serverSelector.dispatchEvent(new Event('change'));
+
+        function populateTemplates(server) {
+            var vmSelector = document.getElementById('vm-selector');    
+            // Clear existing options
+            $(vmSelector).html('');
+
+            console.log('server: ' + server);
+            // Make an AJAX request to retrieve servers in the selected group
+            $.ajax({
+            url: '/index.php?_url=/api/admin/serviceproxmox/qemu_templates_on_server', // Replace with the actual URL to your server-side endpoint
+            method: 'POST', // or 'GET', depending on your server-side implementation
+            data: { server_id: server, 
+            CSRFToken: "{{ CSRFToken }}"
+            },
+            success: function(response) {
+                // Iterate over the servers and append options to the select input
+                response.result.forEach(function(template) {
+                $(vmSelector).html($(vmSelector).html() + '<option value="' + template.id + '">' + template.name + '</option>');
+                });
+            },
+            error: function() {
+                console.log('Error occurred while retrieving templates.');
+            }
+        });
+        }
+
+
     </script>
 {% endblock %}
                                 
