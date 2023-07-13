@@ -35,6 +35,13 @@ trait ProxmoxIPAM
 		return $ip_ranges;
 	}
 
+	// Function that gets all IP Adresses
+	public function get_ip_adresses()
+	{
+		// get all the VM templates from the service_proxmox_vm_config_template table
+		$ip_addresses = $this->di['db']->find('service_proxmox_ipadress');
+		return $ip_addresses;
+	}
 
 	// Function that gets all the LXC templates and returns them as an array
 	public function get_vlans()

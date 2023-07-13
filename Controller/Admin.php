@@ -137,7 +137,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         return $app->render('mod_serviceproxmox_server', array('server' => $server));
     }
 
-    public function get_server_by_group(\Box_App $app)
+    public function get_server_by_group(\Box_App $app, $id)
     {
         $this->di['is_admin_logged'];
         $api = $this->di['api_admin'];

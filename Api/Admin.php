@@ -900,6 +900,15 @@ class Admin extends \Api_Abstract
         return $output;
     }
 
+    /**
+     * Get list of ip adresses
+     * 
+     */
+    public function service_get_ip_adresses()
+    {
+        $output = $this->getService()->get_ip_adresses();
+        return $output;
+    }
 
     /**
      * Get list of vlans

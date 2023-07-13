@@ -345,6 +345,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 			'service_proxmox_qemu_template',
 			'service_proxmox_client_vlan',
 			'service_proxmox_ip_range'
+
 		);
 		
 		foreach ($tables as $table) {
@@ -411,7 +412,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 				'service_proxmox_qemu_template',
 				'service_proxmox_client_vlan',
 				'service_proxmox_ip_range',
-/* 				'service_proxmox_ipadress',
+ 				'service_proxmox_ipadress',/*
 				'service_proxmox_ipam_settings' */
 			);
 	

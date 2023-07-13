@@ -21,6 +21,19 @@
             </a>
         </li>
         <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-ipadress" data-bs-toggle="tab">
+                {{ 'IP Addresses' | trans }}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="#tab-new-ipadress" data-bs-toggle="tab">
+                <svg class="icon me-2">
+                    <use xlink:href="#plus" />
+                </svg>
+                {{ 'New IP Address' | trans }}
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
             <a class="nav-link" href="#tab-vlans" data-bs-toggle="tab">
                 {{ 'VLANs' | trans }}
             </a>
@@ -179,6 +192,156 @@
             </div>
         </div>
         <!-- ##############################################################################
+                                    List IP Adresses
+            ############################################################################## -->
+            <div class="tab-content">
+             <div class="tab-pane fade show" id="tab-ipadress" role="tabpanel">
+                 <div class="card-body">
+                     <h2>
+                         {{ 'IP Addresses' | trans }}
+                     </h2>
+                 </div>
+                 <div class="card-body">
+                     {% set ipadresses = admin.serviceproxmox_service_get_ip_adresses() %}
+                     <div style="padding: 0.25rem 1.5rem">
+                         <strong>
+                             All IP Adresses
+                         </strong>
+                     </div>
+                     <table class="table card-table table-vcenter table-striped table-responsive text-nowrap">
+                         <thead>
+                             <tr>
+                                 <th>
+                                     {{ 'IP' | trans }}
+                                 </th>
+                                 <th>
+                                     {{ 'IP Range' | trans }}
+                                 </th>
+                                 <th>
+                                     {{ 'Dedicated' | trans }}
+                                 </th>
+                                 <th>
+                                     {{ 'Gateway' | trans }}
+                                 </th>
+                                 <th>
+                                    {{ 'VLAN' | trans }}
+                                </th>
+                                 <th class="w-1"></th>
+                             </tr>
+                         </thead>
+                         <tbody>
+                         {% for ipadress in ipadresses %}
+                             <tr>
+                                 <td>
+                                     {{ ipadress.ip }}
+                                 </td>
+                                 <td>
+                                    // display the ip_range cidr for ipaddress.ip_range_id found in the ip_ranges variable
+                                    {% for ip_range in ip_ranges %}
+                                        {% if ip_range.id == ipadress.ip_range_id %}
+                                            {{ ip_range.cidr }}
+                                        {% endif %}
+                                    {% endfor %}
+                                 </td>
+                                 <td>
+                                     {{ ipadress.dedicated }}
+                                 </td>
+                                 <td>
+                                     {{ ipadress.gateway }}
+                                 </td>
+                                 <td>
+                                    {{ ipadress.vlan }}
+                                </td>
+                                 <td>
+                                     <a class="btn btn-icon" href="{{ '/serviceproxmox/ipam/ipadress'|alink }}/{{ ipadress.id }}">
+                                         <svg class="icon">
+                                             <use xlink:href="#edit" />
+                                         </svg>
+                                     </a>
+                                 </td>
+                             </tr>
+                         {% endfor %}
+                         </tbody>
+                     </table>
+                 </div>
+             </div>
+         </div>
+         <!-- ##############################################################################
+                                 Form to create a new IP Adress
+              ############################################################################## -->
+         <div class="tab-content">
+             <div class="tab-pane fade" id="tab-new-ipadress" role="tabpanel">
+                 <div class="card-body">
+                     <form method="post" action="admin/serviceproxmox/ipam/ipadress_create" class="api-form" data-api-redirect="{{ 'serviceproxmox/ipam'|alink }}">
+                         <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}" />
+                         <div class="mb-3 row">
+                             <label class="form-label col-3 col-form-label">
+                                 {{ 'IP' | trans }}:    
+                             </label>
+                             <div class="col">
+                                 <input class="form-control" type="text" id='cidr' name="cidr" value="" required placeholder="{{ 'Unique, non overlapping network in CIDR Notation (A.B.C.D/24)' | trans }}">
+                             </div>
+                         </div>
+                         <div class="mb-3 row">
+                            <label class="form-label col-3 col-form-label">
+                                {{ 'IP Range: ' | trans }}:
+                            </label>
+
+                            <div class="col">
+                                <select class="form-select" name="client_id">
+                                {% for iprange in ipranges %}
+                                    <option value="{{ iprange.id }}">{{ iprange.cidr }}: {{ iprange.network }} - {{ iprange.broadcast }}</option>
+                                {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                         <div class="mb-3 row">
+                             <label class="form-label col-3 col-form-label">
+                                 {{ 'Dedicated IP Address' | trans }}:                                                                            
+                             </label>
+                             <div class="col">
+                                 <div class="form-check form-check-inline">
+                                     <input class="form-check-input" id="radioTypePublic" type="radio" name="type" value="1">
+                                     <label class="form-check-label" for="radioTypePublic">
+                                         {{ 'Yes' | trans }}
+                                     </label>
+                                 </div>
+                                 <div class="form-check form-check-inline">
+                                     <input class="form-check-input" id="radioTypePrivate" type="radio" name="type" value="0" checked>
+                                     <label class="form-check-label" for="radioTypePrivate">
+                                         {{ 'No' | trans }}
+                                     </label>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="mb-3 row">
+                             <label class="form-label col-3 col-form-label">
+                                 {{ 'Gateway ' | trans }}:
+                             </label>
+                             <div class="col">
+                                 <input class="form-control" type="text-area" id='gateway' name="gateway" value="" required placeholder="{{ 'Gateway' | trans }}">
+                             <span id="gateway-validation-error" style="display: none; color: red;">Please enter a valid Gateway IP.</span>
+                             </div>
+                         </div>
+                         <div class="mb-3 row">
+                            <label class="form-label col-3 col-form-label">
+                                {{ 'VLAN: ' | trans }}:
+                            </label>
+                            {% set client_vlans = admin.serviceproxmox_service_get_vlans() %}
+                            <div class="col">
+                                <select class="form-select" name="client_id">
+                                {% for vlan in client_vlans %}
+                                    <option value="{{ vlan.id }}">{{ vlan.vlan }}: {{ vlan.client_name }} </option>
+                                {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                         <input type="submit" value="{{ 'Save IP Range' | trans }}" class="btn btn-primary">
+                     </form>
+                 </div>
+             </div>
+         </div>
+        <!-- ##############################################################################
         List Client VLANs
         ############################################################################## -->
         <div class="tab-content">
@@ -224,7 +387,7 @@
                                     {{ client_vlan.ip_range }}
                                 </td>
                                 <td>
-                                    <a class="btn btn-icon" href="{{ '/serviceproxmox/ipam/clientnetwork'|alink }}/{{ client_vlan.id }}">
+                                    <a class="btn btn-icon" href="{{ '/serviceproxmox/ipam/client_vlan'|alink }}/{{ client_vlan.id }}">
                                         <svg class="icon">
                                             <use xlink:href="#edit" />
                                         </svg>
