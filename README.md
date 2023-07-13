@@ -13,18 +13,18 @@ Based on [previous work](https://github.com/scith/BoxBilling_Proxmox) by [Scith]
 - Manage pools of Proxmox servers (orders can be allocated to servers automatically based on their capacity)
 - Complete Privilege Separation (each client can only see their own VMs),
 - Admin can't see inside client's VMs (Only the VM ID, Name, Status, IP, RAM, CPU, Disk, Bandwidth, etc.)
-- Provision LXC containers (not tested / might not yet work)
-- Provision QEMU KVM machines (tested, but needs very specific product setup)
+- Provision LXC containers (Doensn't Work - WIP)
+- Provision QEMU KVM machines (Doensn't Work - WIP)
 - Clients can start, shutdown and reboot their VMs (online console not working right now)
-- Proxmox Servers do not have to be reachable from the Internet (only the FOSSBilling server needs to be able to reach the Proxmox server)
-- Rudimentary Backup of Module Data (Module data is not lost anymore after reinstalling.)
+- Proxmox Servers do not have to be reachable from the Internet (Might need a nginx proxy manager for this, but not sure yet.)
+- Rudimentary Backup of Module Data (Module data is not lost anymore when reinstalling.)
 
 
 ## TODOs:
 - Better Error Handling when creating unexpected things happen & get returned from pve host.
 - Better VM Allocation procedure
 - Consistent Naming: Templates might be confusing...
-- VM & LXC Template setup needs to be translated into actually creating VMs from it.
+- VM & LXC Template setup needs to be expanded so it can create VMs from it.
 - Provisioning of VMs with Cloudinit (https://pve.proxmox.com/wiki/Cloud-Init_Support)
 - Work on Usability to configure products and manage customer's products
 
