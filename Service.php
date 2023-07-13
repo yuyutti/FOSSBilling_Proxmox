@@ -251,9 +251,24 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 		// read current module version from manifest.json
 		$manifest = json_decode(file_get_contents(__DIR__ . '/manifest.json'), true);
 		$current_version = $manifest['version'];
-		// read each table's version from database
-		// SELECT table_comment FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='fossbilling_yn9ovw' AND table_name='service_proxmox';
-		$tables = ['service_proxmox', 'service_proxmox_server', 'service_proxmox_users', 'service_proxmox_storage', 'service_proxmox_templates', 'service_proxmox_vms', 'service_proxmox_vm_config_template', 'service_proxmox_vm_storage_template', 'service_proxmox_vm_network_template', 'service_proxmox_lxc_template', 'service_proxmox_storageclass'];
+		$tables = array(
+			'service_proxmox_server',
+			'service_proxmox',
+			'service_proxmox_users',
+			'service_proxmox_storageclass',
+			'service_proxmox_storage',
+			'service_proxmox_lxc_appliance',
+			'service_proxmox_vm_config_template',
+			'service_proxmox_vm_storage_template',
+			'service_proxmox_vm_network_template',
+			'service_proxmox_lxc_config_template',
+			'service_proxmox_lxc_storage_template',
+			'service_proxmox_lxc_network_template',
+			'service_proxmox_qemu_template',
+			'service_proxmox_client_vlan',
+			'service_proxmox_ip_range'
+		);
+		
 		foreach ($tables as $table) {
 			$sql = "SELECT table_comment FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='" . DB_NAME . "' AND table_name='" . $table . "'";
 			$result = $this->di['db']->query($sql);

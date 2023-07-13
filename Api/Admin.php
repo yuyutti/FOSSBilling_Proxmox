@@ -1115,7 +1115,7 @@ class Admin extends \Api_Abstract
         $lxc_config_template->swap = $data['swap'];
         $lxc_config_template->template_id = $data['ostemplate'];
         // get os template headline from $di['db'] and set it to $lxc_config_template->ostemplate
-        $ostemplate = $this->di['db']->findOne('service_proxmox_lxc_template', 'id = ?', [$data['ostemplate']]);
+        $ostemplate = $this->di['db']->findOne('service_proxmox_lxc_appliance', 'id = ?', [$data['ostemplate']]);
         $lxc_config_template->ostemplate = $ostemplate->headline;
         $lxc_config_template->onboot = $data['onboot'];
         $lxc_config_template->created_at = date('Y-m-d H:i:s');
