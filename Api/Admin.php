@@ -922,12 +922,25 @@ class Admin extends \Api_Abstract
     }
 
     /**
-     * Get list of vm configuration templates
+     * Get list of tags by input
+     * 
+     * @return array
+     */
+    public function service_get_tags($data)
+    {
+        $output = $this->getService()->get_tags($data);
+        return $output;
+    }
+
+
+    /**
+     * Get a vm configuration templates
      * 
      * @return array
      */
     public function vm_config_template_get($data)
     {
+        error_log("vm_config_template_get");
         $vm_config_template = $this->di['db']->findOne('service_proxmox_vm_config_template', 'id=:id', array(':id' => $data['id']));
         if (!$vm_config_template) {
             throw new \Box_Exception('VM template not found');
@@ -952,6 +965,19 @@ class Admin extends \Api_Abstract
 
 
 
+    }
+
+    /**
+     * Function to get storages for vm config template
+     * 
+     * @return array
+     */
+
+    public function vm_config_template_get_storages($data)
+    {
+        $vm_config_template = $this->di['db']->find('service_proxmox_vm_storage_template', 'template_id=:id', array(':id' => $data['id']));
+
+        return $vm_config_template;
     }
 
     /**
@@ -1048,18 +1074,10 @@ class Admin extends \Api_Abstract
      * 
      * @return bool
      */
-    public function vm_template_create($data)
+    public function vm_config_template_create($data)
     {
         $required = array(
             'name'     => 'Server name is missing',
-            'description'          => 'Server description is missing',
-            'cpu_cores'          => 'CPU cores are missing',
-            'vmmemory'    => 'memory is missing',
-            'balloon'        => 'Balloon is missing',
-            'os'          => 'OS is missing',
-            'bios'       => 'Bios Type is missing',
-            'onboot'          => 'Start on Boot is missing',
-            'agent'         => 'Run Agent is missing'
         );
 
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
@@ -1068,7 +1086,8 @@ class Admin extends \Api_Abstract
         $vm_config_template = $this->di['db']->dispense('service_proxmox_vm_config_template');
         // Fill vm_config_template
         $vm_config_template->name = $data['name'];
-        $vm_config_template->description = $data['description'];
+        $vm_config_template->state = "draft";
+        /* $vm_config_template->description = $data['description'];
         $vm_config_template->cores = $data['cpu_cores'];
         $vm_config_template->memory = $data['vmmemory'];
         $vm_config_template->balloon = $data['balloon'];
@@ -1085,12 +1104,12 @@ class Admin extends \Api_Abstract
         $vm_config_template->onboot = $data['onboot'];
         $vm_config_template->agent = $data['agent'];
         $vm_config_template->created_at = date('Y-m-d H:i:s');
-        $vm_config_template->updated_at = date('Y-m-d H:i:s');
+        $vm_config_template->updated_at = date('Y-m-d H:i:s'); */
         $this->di['db']->store($vm_config_template);
 
         
         $this->di['logger']->info('Create VM config Template %s', $vm_config_template->id);
-        return true;
+        return $vm_config_template;
     }
 
     /**
@@ -1395,7 +1414,7 @@ class Admin extends \Api_Abstract
 
 
     /**
-     * Delete client vlan
+     * Delete client vlanx
      * 
      * @param  int $id
      * @return bool

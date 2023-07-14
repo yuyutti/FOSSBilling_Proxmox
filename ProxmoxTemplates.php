@@ -49,6 +49,11 @@ trait ProxmoxTemplates
 	{
 		// get all the qemu templates from the service_proxmox_qemu_template table
 		$qemu_templates = $this->di['db']->findAll('service_proxmox_qemu_template');
+		// Get server name for each template
+		foreach ($qemu_templates as $qemu_template) {
+			$server = $this->di['db']->getExistingModelById('service_proxmox_server', $qemu_template->server_id);
+			$qemu_template->server_name = $server->name;
+		}
 		return $qemu_templates;
 	}
 }

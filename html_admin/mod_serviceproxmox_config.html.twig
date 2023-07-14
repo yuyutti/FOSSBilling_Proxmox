@@ -184,6 +184,7 @@
             CSRFToken: "{{ CSRFToken }}"
             },
             success: function(response) {
+                console.log(response.result);
                 // Iterate over the servers and append options to the select input
                 response.result.forEach(function(server) {
                 $(serverSelector).html($(serverSelector).html() + '<option value="' + server.id + '">' + server.name + '</option>');
@@ -227,6 +228,7 @@
                 });
             },
             error: function() {
+                console.log(response);
                 console.log('Error occurred while retrieving templates.');
             }
         });

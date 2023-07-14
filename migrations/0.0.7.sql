@@ -42,3 +42,28 @@ ALTER TABLE `service_proxmox_qemu_template` ADD `vmid` INT(11) NOT NULL AFTER `i
 -- alter service_proxmox_ip_range to add network field after gateway
 -- --------------------------------------------------------
 ALTER TABLE `service_proxmox_ip_range` ADD `network` VARCHAR(255) NOT NULL AFTER `gateway`;
+
+-- --------------------------------------------------------
+-- alter service_proxmox_vm_config_template to add state field after id
+-- --------------------------------------------------------
+ALTER TABLE `service_proxmox_vm_config_template` ADD `state` VARCHAR(255) NOT NULL AFTER `id`;
+-- --------------------------------------------------------
+-- insert state "draft" for all existing templates
+
+UPDATE `service_proxmox_vm_config_template` SET `state` = 'draft';
+
+-- --------------------------------------------------------
+-- rename "format" field to "controller"
+-- --------------------------------------------------------
+ALTER TABLE `service_proxmox_vm_config_storage` CHANGE `format` `controller` VARCHAR(255) NOT NULL;
+
+
+-- --------------------------------------------------------
+-- add new table for tags and tag relations
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `service_proxmox_tag` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -843,4 +843,14 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 	{
 		return \Symfony\Component\HttpClient\HttpClient::create();
 	}
+
+	// function to get tags for type
+	public function get_tags($data)
+	{
+		// get list of tags for input type
+		$tags = $this->di['db']->find('service_proxmox_tag', 'type=:type', array(':type' => $data['type']));
+		// return tags
+		return $tags;
+	}
+
 }
