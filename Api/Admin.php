@@ -192,6 +192,28 @@ class Admin extends \Api_Abstract
         return $storageclasses;
     }
 
+    /**
+     * Get list of storage controllers
+     * 
+     * @return array
+     */
+    public function storage_controller_get_list($data)
+    {
+        // Return Array of storage controllers: 	
+        // lsi | lsi53c810 | virtio-scsi-pci | virtio-scsi-single | megasas | pvscsi
+        $storage_controllers = array(
+            'lsi' => 'LSI',
+            'lsi53c810' => 'LSI 53C810',
+            'virtio-scsi-pci' => 'VirtIO SCSI PCI',
+            'virtio-scsi-single' => 'VirtIO SCSI Single',
+            'megasas' => 'MegaSAS',
+            'pvscsi' => 'PVSCSI',
+            'sata' => 'SATA',
+            'ide' => 'IDE',
+        );
+        return $storage_controllers;
+    }
+
     /** *
      * Get list of Active Services
      * 

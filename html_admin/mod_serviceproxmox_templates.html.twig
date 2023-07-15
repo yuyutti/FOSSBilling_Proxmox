@@ -201,7 +201,6 @@
                                 </label>
                             </div>
                         </div>
-                        </div>
                         <div class="mb-3 row" id='balloon-size'>
                             <label class="form-label col-3 col-form-label">
                                 {{ 'Ballooing Memory Size' | trans }}:                                                                                    
@@ -345,8 +344,7 @@
                                     <div class="mb-3 row">
                                         <label class="form-label col-3">Storage Type Tags:</label>
                                         <div class="col">
-                                            <select class="form-select" id="storageTypeTags" name="storageTypeTags" multiple>
-                                            </select>
+                                            <input type="text" name="storageTypeTags[]" id="storageTypeTags" multiple>
                                         </div>
                                     </div>
                             
@@ -368,8 +366,13 @@
                                         <label class="form-label col-3 col-form-label">
                                             {{ 'Controller' | trans }}:                                                                    
                                         </label>
+                                        {% set controllers = admin.serviceproxmox_storage_controller_get_list() %}
                                         <div class="col">
-                                            <input class="form-control" type="text" id='controller' name="controller" value="" required placeholder="{{ 'Unique name to identify this template' | trans }}">
+                                            <select name="controller" class="form-select">
+                                                {% for key, controller in controllers %}
+                                                    <option value="{{ key }}">{{ controller }}</option>
+                                                {% endfor %}
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -381,6 +384,18 @@
                         </div>
                     </div>
                     <div class="card-footer text-end">
+                            <a class="btn btn-error" href="{{ '/serviceproxmox/templates/:id/disable'|alink }}/{{ template.id }}">
+                                <svg class="icon">
+                                    <use xlink:href="#close" />
+                                </svg>
+                                {{ 'Activate' | trans }}&nbsp;&nbsp;
+                            </a>
+                            <a class="btn btn-success" href="{{ '/serviceproxmox/templates/:id/enable'|alink }}/{{ template.id }}">
+                                <svg class="icon">
+                                    <use xlink:href="#check" />
+                                </svg>
+                                {{ 'Activate' | trans }}&nbsp;&nbsp;
+                            </a>
                         <input type="submit" value="{{ 'Save VM Template' | trans }}" class="btn btn-primary">
                     </div>
                     </form>
@@ -830,9 +845,100 @@
                 }
             });
             }
+{#         $(document).ready(function() {
+            var options=[];	
+            $.ajax({
+                url: '/index.php?_url=/api/admin/serviceproxmox/service_get_tags',
+                method: 'POST', 
+                data: {
+                    type: "storage",
+                    CSRFToken: '{{ CSRFToken }}'
+                },
+                success: function(response) {
+                    // populate the select with the tags
+                    console.log(response.result);
+                    for (var key in response.result) {
+                        if (response.hasOwnProperty(key)) {
+                            console.log(response.result[key].name);
+                            var option = {
+                                value: response.result[key].id,
+                                text: response.result[key].name
+                            };
+                            options.push(option);
+                            console.log(options);
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Handle the error response
+                    console.log('Error occurred while saving tags: ' + error);
+                }
+            });
+            var storageselect = new TomSelect('#storageTypeTags', {
+                plugins: ['remove_button'],
+                create: true,
+                delimiter: ',',
+                options: options
+            })
 
 
-        function saveTagsToDatabase() {
+        }) #}
+        $(document).ready(function() {
+            var Type = "storage";
+            var select = new TomSelect('#storageTypeTags', {
+                plugins: ['remove_button'],
+                create: true,
+                delimiter: ',',
+                // Add more options and settings as needed
+            });
+
+            getTagsForType(Type, function(options) {
+                // Add options to the TomSelect instance
+                select.addOption(options);
+            });
+        });
+        function getTagsForType(Type, callback) {
+            // Create the AJAX request
+            var options = [];
+            $.ajax({
+                url: '/index.php?_url=/api/admin/serviceproxmox/service_get_tags',
+                method: 'POST',
+                data: {
+                    type: Type,
+                    CSRFToken: '{{ CSRFToken }}'
+                },
+                success: function(response) {
+                    for (var key in response.result) {
+                        if (response.result.hasOwnProperty(key)) {
+                            var option = {
+                                value: response.result[key].id,
+                                text: response.result[key].name
+                            };
+                            options.push(option);
+                        }
+                    }
+                    // Call the callback function with the options array
+                    callback(options);
+                },
+                error: function(xhr, status, error) {
+                    // Handle the error response
+                    console.log('Error occurred while saving tags: ' + error);
+                    // Call the callback function with an empty array
+                    callback(options);
+                }
+            });
+        }
+{#         function getTagsForType(Type) {
+            // Create the AJAX request
+            
+        } #}
+        // add an event listener to the Add storage tab button
+{#         var tabNewVmStorageBtn = document.getElementById('tab-new-vm-storage-btn');
+        tabNewVmStorageBtn.addEventListener('click', function(event) {
+            // run the getTagsForType function with the type "storage"
+            getTagsForType("storage");
+        }); #}
+                function saveTagsToDatabase() {
             // Retrieve the selected tags
             var selectedTags = $('#storageTypeTags[]').val();
         
@@ -853,45 +959,6 @@
                 }
             });
         }
-
-        function getTagsForType(Type) {
-            // Create the AJAX request
-            $.ajax({
-                url: '/index.php?_url=/api/admin/serviceproxmox/service_get_tags',
-                method: 'POST', 
-                data: {
-                    type: Type,
-                    CSRFToken: '{{ CSRFToken }}'
-                },
-                success: function(response) {
-                    // populate the select with the tags
-                    console.log(response.result);
-                    for (var key in response.result) {
-                        if (response.result.hasOwnProperty(key)) {
-                            var tag = response.result[key];
-                
-                            // Create a new option in the select
-                            var option = document.createElement("option");
-                            option.setAttribute("value", tag.id);
-                            option.innerHTML = tag.name;
-                            document.getElementById("storageTypeTags").appendChild(option);
-                        }
-                    }
-                },
-                error: function(xhr, status, error) {
-                    // Handle the error response
-                    console.log('Error occurred while saving tags: ' + error);
-                }
-            });
-        }
-        // add an event listener to the Add storage tab button
-
-        var tabNewVmStorageBtn = document.getElementById('tab-new-vm-storage-btn');
-
-        tabNewVmStorageBtn.addEventListener('click', function(event) {
-            // run the getTagsForType function with the type "storage"
-            getTagsForType("storage");
-        });
 
 
         
