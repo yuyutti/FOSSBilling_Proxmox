@@ -56,4 +56,20 @@ trait ProxmoxTemplates
 		}
 		return $qemu_templates;
 	}
+
+	// Function that gets a vm config template by id
+	public function get_vmconfig($id)
+	{
+		// get the vm config template from the service_proxmox_vm_config_template table
+		$template = $this->di['db']->getExistingModelById('service_proxmox_vm_config_template', $id);
+		return $template;
+	}
+
+	// Function that gets a lxc config template by id
+	public function get_lxc_conftempl ($id)
+	{
+		// get the lxc config template from the service_proxmox_lxc_config_template table
+		$template = $this->di['db']->getExistingModelById('service_proxmox_lxc_config_template', $id);
+		return $template;
+	}
 }

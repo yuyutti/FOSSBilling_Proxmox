@@ -835,17 +835,20 @@ class Admin extends \Api_Abstract
             'id'            => 'Product id is missing',
             'group'         => 'Server group is missing',
             'filling'       => 'Filling method is missing',
-            'show_stock'    => 'Stock display is missing',
+            'show_stock'    => 'Stock display (Show Stock) is missing',
+            'server'        => 'Server is missing',
             'virt'          => 'Virtualization type is missing',
-            'storage'       => 'Target storage is missing',
-            'memory'        => 'Memory is missing',
-            'cpu'           => 'CPU cores is missing',
-            'network'       => 'Network net0 is missing',
-            'ide0'          => 'Storage ide0 is missing',
-            'clone'         => 'Clone info is missing'
+            
         );
 
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
+
+        // Check if virt is lxc or qemu, and if lxc, check if lxc-templ is set. if qemu, check if vm-templ is set.
+        if ($data['virt'] == 'lxc' && empty($data['lxc-templ'])) {
+            throw new \Box_Exception('LXC Template is missing');
+        } elseif ($data['virt'] == 'qemu' && empty($data['vm-templ'])) {
+            throw new \Box_Exception('VM Template is missing');
+        }
 
         // Retrieve associated product
         $product  = $this->di['db']->findOne('product', 'id=:id', array(':id' => $data['id']));
@@ -855,15 +858,10 @@ class Admin extends \Api_Abstract
             'filling'       => $data['filling'],
             'show_stock'    => $data['show_stock'],
             'virt'          => $data['virt'],
-            'storage'       => $data['storage'],
-            'ostemplate'    => $data['ostemplate'],
-            'cdrom'         => $data['cdrom'],
-            'memory'        => $data['memory'],
-            'cpu'           => $data['cpu'],
-            'network'       => $data['network'],
-            'ide0'          => $data['ide0'],
-            'clone'         => $data['clone'],
-            'cloneid'       => $data['cloneid']
+            'server'        => $data['server'],
+            'lxc-templ'     => $data['lxc-templ'],
+            'vm-templ'      => $data['vm-templ'],  
+            'vmconftempl' => $data['vmconftempl'],          
         );
 
         $product->config         = json_encode($config);
