@@ -2,9 +2,10 @@
 [![Build and Test](https://github.com/Anuril/Proxmox/actions/workflows/php-ci.yml/badge.svg)](https://github.com/Anuril/Proxmox/actions/workflows/php-ci.yml)
 
 # Proxmox module for FOSSBilling
-Proxmox support for FOSSBilling. 
 
-**This module is still in development and not ready for production use.**
+# This module is still in development and not ready for production use.
+
+WIP Proxmox support for FOSSBilling. As stated above, this is still heavily a WIP and is not ready for production use. Please only install it if you are a developer and intend to contribute back to the module. Please see the issues (especially [#26](https://github.com/FOSSBilling/Proxmox/issues/26)) for the current status of the module as some great work is being done, but it's not yet to a complete state.
 
 ## Server List
 ![image](https://github.com/Anuril/Proxmox/assets/1939311/d81a052e-6c00-429b-81aa-7a3cd8dfad71)
