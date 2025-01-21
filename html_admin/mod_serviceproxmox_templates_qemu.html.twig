@@ -263,17 +263,17 @@
                                             {{ 'Size' | trans }}:                                                                    
                                         </label>
                                         <div class="col-md-5">
-                                                <input class="form-range" type="range" name="storage_size" id="storage_size" value="1" min="50" max="2000" step="10" oninput="storage_sizeOutput.value = this.value+' GB';">
+                                                <input class="form-range" type="range" name="storage_size" id="storage_size" value="1" min="10" max="2000" step="10" oninput="storage_sizeOutput.value = this.value+' GB';">
                                         </div>
                                         <div class="col-md-2">
                                             <output name="storage_sizeOutput" for="storage_size">
-                                                50 GB
+                                                10 GB
                                             </output>
                                         </div>
                                     </div>
                                     <div class="mb-3 row">
                                         <label class="form-label col-3 col-form-label">
-                                            {{ 'Controller' | trans }}:                                                                    
+                                            {{ 'Controller' | trans }}:
                                         </label>
                                         {% set controllers = admin.serviceproxmox_storage_controller_get_list() %}
                                         <div class="col">
