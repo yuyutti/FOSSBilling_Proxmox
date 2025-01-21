@@ -179,22 +179,13 @@
 			var serverSelector = document.getElementById('server-selector');
 			$(serverSelector).html('');
 
-			API.admin.post('serviceproxmox/servers_in_group', {
-				group: group
-			}, function(response) {
-				response.forEach(function(server) {
-					if (server.id == {
-							{
-								product.config.server
-							}
-						}) {
-						$(serverSelector).html($(serverSelector).html() + '<option value="' + server.id + '" selected>' + server.name + '</option>');
-					} else {
-						$(serverSelector).html($(serverSelector).html() + '<option value="' + server.id + '">' + server.name + '</option>');
-					}
-				});
-				serverSelector.dispatchEvent(new Event('change'));
+		API.admin.post('serviceproxmox/servers_in_group', { group: group }, function(response) {
+			response.forEach(function(server) {
+				const isSelected = server.id == product.config.server ? 'selected' : '';
+				$(serverSelector).append('<option value="' + server.id + '" ' + isSelected + '>' + server.name + '</option>');
 			});
+			serverSelector.dispatchEvent(new Event('change'));
+		});
 
 		}
 		var serverSelector = document.getElementById('server-selector');
