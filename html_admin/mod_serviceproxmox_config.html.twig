@@ -201,23 +201,15 @@
 			var vmSelector = document.getElementById('vm-selector');
 			$(vmSelector).html('');
 
-			API.admin.post('serviceproxmox/qemu_templates_on_server', {
-				server_id: server
-			}, function(response) {
-				response.forEach(function(template) {
-					if (template.id == {
-							{
-								product.config.vm - templ
-							}
-						}) {
-						$(vmSelector).html($(vmSelector).html() + '<option value="' + template.id + '" selected>' + template.name + '</option>');
-					} else {
-						$(vmSelector).html($(vmSelector).html() + '<option value="' + template.id + '">' + template.name + '</option>');
-					}
-				});
-			}, function(error) {
-				console.log('Error occurred while retrieving templates: '+ error);
-			}, false, );
+		API.admin.post('serviceproxmox/qemu_templates_on_server', { server_id: server }, function(response) {
+			response.forEach(function(template) {
+				const isSelected = template.id == product.config.vm_template ? 'selected' : '';
+				$(vmSelector).append('<option value="' + template.id + '" ' + isSelected + '>' + template.name + '</option>');
+			});
+		}, function(error) {
+			console.error('Error occurred while retrieving templates: ' + error);
+		});
+
 		}
     </script>
 {% endblock %}
