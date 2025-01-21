@@ -391,8 +391,7 @@
             const templateIdElem = document.getElementById('vm_config_template_id');
         
             if (!templateIdElem) {
-                console.error("Element with id 'vm_config_template_id' not found!");
-                return;
+                return console.error("Element with id 'vm_config_template_id' not found!");
             }
         
             const templateId = templateIdElem.value;
