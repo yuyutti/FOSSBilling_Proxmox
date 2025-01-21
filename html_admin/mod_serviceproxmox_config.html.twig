@@ -134,82 +134,49 @@
 	</div>
 </form>
 {% block js %}
-    <script>
-		if (document.getElementById('radioVirtlxc').checked && !document.getElementById('radioVirtqemu').checked) {
-			document.getElementById('select-lxc-template').hidden = false;
-			document.getElementById('select-vm-config-template').hidden = true;
-			document.getElementById('select-template-vm').hidden = true;
-		} else if (!document.getElementById('radioVirtlxc').checked && document.getElementById('radioVirtqemu').checked) {
-			document.getElementById('select-lxc-template').hidden = true;
-			document.getElementById('select-vm-config-template').hidden = false;
-			document.getElementById('select-template-vm').hidden = false;
-		}
-		document.getElementById('radioVirtlxc').addEventListener('click', function() {
-			if (document.getElementById('radioVirtlxc').checked && !document.getElementById('radioVirtqemu').checked) {
-				document.getElementById('select-lxc-template').hidden = false;
-				document.getElementById('select-vm-config-template').hidden = true;
-				document.getElementById('select-template-vm').hidden = true;
-			} else if (!document.getElementById('radioVirtlxc').checked && document.getElementById('radioVirtqemu').checked) {
-				document.getElementById('select-lxc-template').hidden = true;
-				document.getElementById('select-vm-config-template').hidden = false;
-				document.getElementById('select-template-vm').hidden = false;
-			}
-		})
-		document.getElementById('radioVirtqemu').addEventListener('click', function() {
-			if (document.getElementById('radioVirtlxc').checked && !document.getElementById('radioVirtqemu').checked) {
-				document.getElementById('select-lxc-template').hidden = false;
-				document.getElementById('select-vm-config-template').hidden = true;
-				document.getElementById('select-template-vm').hidden = true;
-			} else if (!document.getElementById('radioVirtlxc').checked && document.getElementById('radioVirtqemu').checked) {
-				document.getElementById('select-lxc-template').hidden = true;
-				document.getElementById('select-vm-config-template').hidden = false;
-				document.getElementById('select-template-vm').hidden = false;
-			}
-		})
+<script>
+    // TwigからJavaScriptにデータを渡す
+    const product = {{ product|json_encode|raw }};
 
-		var groupSelector = document.getElementById('group-selector');
-		groupSelector.addEventListener('change', function() {
-			$group = $(this).val();
+    var groupSelector = document.getElementById('group-selector');
+    groupSelector.addEventListener('change', function() {
+        const group = $(this).val();
+        populateServers(group);
+    });
+    groupSelector.dispatchEvent(new Event('change'));
 
-			populateServers($group);
-		});
-		groupSelector.dispatchEvent(new Event('change'));
+    function populateServers(group) {
+        const serverSelector = document.getElementById('server-selector');
+        $(serverSelector).html('');
 
-		function populateServers(group) {
-			var serverSelector = document.getElementById('server-selector');
-			$(serverSelector).html('');
+        API.admin.post('serviceproxmox/servers_in_group', { group: group }, function(response) {
+            response.forEach(function(server) {
+                const isSelected = server.id == product.config.server ? 'selected' : '';
+                $(serverSelector).append('<option value="' + server.id + '" ' + isSelected + '>' + server.name + '</option>');
+            });
+            serverSelector.dispatchEvent(new Event('change'));
+        });
+    }
 
-		API.admin.post('serviceproxmox/servers_in_group', { group: group }, function(response) {
-			response.forEach(function(server) {
-				const isSelected = server.id == product.config.server ? 'selected' : '';
-				$(serverSelector).append('<option value="' + server.id + '" ' + isSelected + '>' + server.name + '</option>');
-			});
-			serverSelector.dispatchEvent(new Event('change'));
-		});
+    var serverSelector = document.getElementById('server-selector');
+    serverSelector.addEventListener('change', function() {
+        const server = $(this).val();
+        populateTemplates(server);
+    });
+    serverSelector.dispatchEvent(new Event('change'));
 
-		}
-		var serverSelector = document.getElementById('server-selector');
-		serverSelector.addEventListener('change', function() {
-			$server = $(this).val();
+    function populateTemplates(server) {
+        const vmSelector = document.getElementById('vm-selector');
+        $(vmSelector).html('');
 
-			populateTemplates($server);
-		});
-
-		serverSelector.dispatchEvent(new Event('change'));
-
-		function populateTemplates(server) {
-			var vmSelector = document.getElementById('vm-selector');
-			$(vmSelector).html('');
-
-		API.admin.post('serviceproxmox/qemu_templates_on_server', { server_id: server }, function(response) {
-			response.forEach(function(template) {
-				const isSelected = template.id == product.config.vm_template ? 'selected' : '';
-				$(vmSelector).append('<option value="' + template.id + '" ' + isSelected + '>' + template.name + '</option>');
-			});
-		}, function(error) {
-			console.error('Error occurred while retrieving templates: ' + error);
-		});
-
-		}
-    </script>
+        API.admin.post('serviceproxmox/qemu_templates_on_server', { server_id: server }, function(response) {
+            response.forEach(function(template) {
+                const isSelected = template.id == product.config.vm_template ? 'selected' : '';
+                $(vmSelector).append('<option value="' + template.id + '" ' + isSelected + '>' + template.name + '</option>');
+            });
+        }, function(error) {
+            console.error('Error occurred while retrieving templates: ' + error);
+        });
+    }
+</script>
 {% endblock %}
