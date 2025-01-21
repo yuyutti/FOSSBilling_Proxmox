@@ -84,9 +84,8 @@ DROP PROCEDURE IF EXISTS DropTables;
 
 ### Installation for 0.1.0 Preview
 - Go to the Modules folder (f.ex: ```cd /var/www/modules```)
-- Run ```git clone https://github.com/FOSSBilling/Proxmox.git Serviceproxmox```
+- Run ```git clone https://github.com/yuyutti/FOSSBilling_Proxmox.git Serviceproxmox```
 - Go Inside the directory ```cd Serviceproxmox/```
-- Checkout the 0.1.0 branch ```git checkout 0.1.0```
 - Make sure to chown to your web-servers User (f.ex `chown www-data:www-data Serviceproxmox -Rf`) 
 - Install the Module in the Web interface.
 - Configure the Proxmox module in the FOSSBilling admin area
