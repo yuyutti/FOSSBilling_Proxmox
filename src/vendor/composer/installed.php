@@ -3,7 +3,7 @@
         'name' => 'fossbilling/proxmox',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'd61ac9667c9bfdd75770f47cb1d775cefddd6927',
+        'reference' => 'c5d501b2e6a3cb10466dd155bf9c890e8eac13ed',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'fossbilling/proxmox' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'd61ac9667c9bfdd75770f47cb1d775cefddd6927',
+            'reference' => 'c5d501b2e6a3cb10466dd155bf9c890e8eac13ed',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../../',
             'aliases' => array(),
