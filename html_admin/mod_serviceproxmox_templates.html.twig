@@ -164,7 +164,7 @@
                                 {{ 'Description' | trans }}:
                             </label>
                             <div class="col">
-                                <input class="form-control" type="text-area" name="description" value="" required placeholder="{{ 'Description' | trans }}">
+                                <input class="form-control" type="text" name="description" value="" required placeholder="{{ 'Description' | trans }}">
                             </div>
                         </div>
                         <div class="mb-3 row">
@@ -182,7 +182,7 @@
                         </div>
                         <div class="mb-3 row">
                             <label class="form-label col-3 col-form-label">
-                                {{ 'Memory' | trans }}:                                                                    
+                                {{ 'Memory' | trans }}:
                             </label>
                             <div class="col-md-5">
                                     <input class="form-range" type="range" name="vmmemory" value="1" min="1" max="128" step="1" oninput="vmmemoryOutput.value = this.value+' GB';">
@@ -358,11 +358,11 @@
                                             {{ 'Size' | trans }}:                                                                    
                                         </label>
                                         <div class="col-md-5">
-                                                <input class="form-range" type="range" name="storage_size" id="storage_size" value="1" min="50" max="2000" step="10" oninput="storage_sizeOutput.value = this.value+' GB';">
+                                                <input class="form-range" type="range" name="storage_size" id="storage_size" value="1" min="10" max="2000" step="10" oninput="storage_sizeOutput.value = this.value+' GB';">
                                         </div>
                                         <div class="col-md-2">
                                             <output name="storage_sizeOutput" for="storage_size">
-                                                50 GB
+                                                10 GB
                                             </output>
                                         </div>
                                     </div>
